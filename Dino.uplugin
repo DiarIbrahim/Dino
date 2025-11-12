@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": ".1",
+	"FriendlyName": "Dino",
+	"Description": "Dino is helper plugin to allow make games easier by providing in-game tools and systems.",
+	"Category": "Diar Free Plugins",
+	"CreatedBy": "Diar Ibrahim",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "Dino",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}

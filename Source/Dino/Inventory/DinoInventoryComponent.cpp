@@ -55,21 +55,27 @@ void UDinoInventoryComponent::Multi_AddItemToInventory_Implementation(const FGam
 
 void UDinoInventoryComponent::AddItemToInventory_Internal(const FGameplayTag& ItemTag, int32 Quantity)
 {
-	InventorySlotContainer.AddItem(ItemTag, Quantity);
+	if (InventorySlotContainer.AddItem(ItemTag, Quantity)) {
+		OnItemsChanged.Broadcast(InventorySlotContainer);
 
-	OnItemsChanged.Broadcast(InventorySlotContainer);
+	}
+
 }
 
 void UDinoInventoryComponent::RemoveItemFromInventory(FGameplayTag ItemTag, int32 Quantity)
 {
+	// standalone
 	if (GetWorld()->GetNetMode() == NM_Standalone) {
 		RemoveItemFromInventory_Internal(ItemTag, Quantity);
 	}
 	else {
+		// networking
 		if (GetOwner()->HasAuthority()) {
+			// we are the server, multi cast
 			Multi_RemoveItemFromInventory(ItemTag, Quantity);
 		}
 		else {
+			// ask server
 			Server_RemoveItemFromInventory(ItemTag, Quantity);
 		}
 	}
@@ -89,6 +95,5 @@ void UDinoInventoryComponent::RemoveItemFromInventory_Internal(const FGameplayTa
 {
 	InventorySlotContainer.RemoveItem(ItemTag, QuantityToRemove);
 	OnItemsChanged.Broadcast(InventorySlotContainer);
-
 
 }

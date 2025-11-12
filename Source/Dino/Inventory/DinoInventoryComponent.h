@@ -12,7 +12,10 @@
 
 
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryItemsChangedDelegate, const FDinoInventorySlotContainer&, Items);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryItemAddedDelegate, const FDinoInventorySlotContainer&, Items, const FGameplayTag& NewItemTag);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryItemRemovedDelegate, const FDinoInventorySlotContainer&, Items, const FGameplayTag& RemovedItemTag);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventorySlotCountUpdatedDelegate, int32, NewInventorySlotCount);
 
 
 
@@ -28,7 +31,7 @@ public:
 	
 	virtual void BeginPlay() override;
 
-	// ---- Add Item
+	//// ---- Add Item
 
 	// to Add Item to the Inventory, if the item already exist we add up the quantity
 	UFUNCTION(BlueprintCallable, Category = "Dino Inventory")
@@ -45,7 +48,7 @@ public:
 	// internal use only, to add actual item to the inventory after the networking logics
 	void AddItemToInventory_Internal(const FGameplayTag& ItemTag, int32 Quantity = 1);
 
-	// ---- Remove Item
+	//// ---- Remove Item
 
 	// to Remove Item from the Inventory, if QuantityToRemove == -1 we remove the item regardless of the Current quantity of the item otherwise we subtract the quantity
 	UFUNCTION(BlueprintCallable, Category = "Dino Inventory")
@@ -55,7 +58,7 @@ public:
 	void Server_RemoveItemFromInventory(const FGameplayTag& ItemTag, int32 QuantityToRemove = -1);
 	void Server_RemoveItemFromInventory_Implementation(const FGameplayTag& ItemTag, int32 QuantityToRemove = -1);
 
-	UFUNCTION(Server, Reliable, Category = "Dino Inventory")
+	UFUNCTION(NetMulticast, Reliable, Category = "Dino Inventory")
 	void Multi_RemoveItemFromInventory(const FGameplayTag& ItemTag, int32 QuantityToRemove = -1);
 	void Multi_RemoveItemFromInventory_Implementation(const FGameplayTag& ItemTag, int32 QuantityToRemove = -1);
 

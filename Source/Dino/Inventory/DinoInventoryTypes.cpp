@@ -1,3 +1,6 @@
+// Code By : Diar Ibrahim,  Contact :  https://www.linkedin.com/in/diar-ibrahim-ali/
+
+
 #include "DinoInventoryTypes.h"
 
 bool FDinoInventorySlotContainer::ContainsItem(const FGameplayTag& InItemTag) const
@@ -79,6 +82,23 @@ int32 FDinoInventorySlotContainer::GetItemSlotIndex(const FGameplayTag& InItemTa
         }
     }
     return -1;
+}
+
+bool FDinoInventorySlotContainer::GetItemSlot(const FGameplayTag& InItemTag, FDinoInventorySlot& OutFoundSlot) const
+{
+    for (size_t i = 0; i < Slots.Num(); i++) {
+        if (Slots[i].ItemTag.MatchesTagExact(InItemTag)) {
+            OutFoundSlot = Slots[i];
+            return true;
+        }
+    }
+    return false;
+}
+
+int32 FDinoInventorySlotContainer::GetItemQuantity(const FGameplayTag& InItemTag) const
+{
+    const int32 ItemIndex = GetItemSlotIndex(InItemTag);
+    return ItemIndex == -1 ? -1 : Slots[ItemIndex].ItemQuantity;
 }
 
 void FDinoInventorySlotContainer::SetMaxSlotCount(int32 NewMaxSlot)

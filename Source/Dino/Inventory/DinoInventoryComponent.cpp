@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Code By : Diar Ibrahim,  Contact :  https://www.linkedin.com/in/diar-ibrahim-ali/
 
 
 #include "DinoInventoryComponent.h"
@@ -22,6 +22,13 @@ void UDinoInventoryComponent::BeginPlay()
 		OwningController = OwnerPawn->GetController();
 	}
 
+	Initialize();
+}
+
+void UDinoInventoryComponent::Initialize()
+{
+	// initialize the inventory
+	InventorySlotContainer = FDinoInventorySlotContainer(DefaultInventorySlotCount, DefaultSlotItemCapacity);
 }
 
 void UDinoInventoryComponent::AddItemToInventory(FGameplayTag ItemTag, int32 Quantity)
@@ -55,9 +62,11 @@ void UDinoInventoryComponent::Multi_AddItemToInventory_Implementation(const FGam
 
 void UDinoInventoryComponent::AddItemToInventory_Internal(const FGameplayTag& ItemTag, int32 Quantity)
 {
-	if (InventorySlotContainer.AddItem(ItemTag, Quantity)) {
-		OnItemsChanged.Broadcast(InventorySlotContainer);
 
+	const bool bItemAlreadyExist = InventorySlotContainer.ContainsItem(ItemTag);
+
+	if (InventorySlotContainer.AddItem(ItemTag, Quantity)) {
+		OnItemAdded.Broadcast(InventorySlotContainer, ItemTag, !bItemAlreadyExist);
 	}
 
 }
@@ -93,7 +102,12 @@ void UDinoInventoryComponent::Multi_RemoveItemFromInventory_Implementation(const
 
 void UDinoInventoryComponent::RemoveItemFromInventory_Internal(const FGameplayTag& ItemTag, int32 QuantityToRemove)
 {
-	InventorySlotContainer.RemoveItem(ItemTag, QuantityToRemove);
-	OnItemsChanged.Broadcast(InventorySlotContainer);
+
+	int32 CurrentQuantity = InventorySlotContainer.GetItemQuantity(ItemTag);
+	const bool bRemoveAll = QuantityToRemove == -1 ? true : CurrentQuantity <= QuantityToRemove;
+
+	if (InventorySlotContainer.RemoveItem(ItemTag, QuantityToRemove)) {
+		OnItemRemoved.Broadcast(InventorySlotContainer, ItemTag, bRemoveAll);
+	}
 
 }

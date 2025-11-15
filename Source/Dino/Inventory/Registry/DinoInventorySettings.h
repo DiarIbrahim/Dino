@@ -1,10 +1,11 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Code By : Diar Ibrahim,  Contact :  https://www.linkedin.com/in/diar-ibrahim-ali/
+
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
-#include "DinoInventoryRegistryData.h"
+#include "Engine/DataTable.h"
 #include "DinoInventorySettings.generated.h"
 
 
@@ -18,12 +19,16 @@ class DINO_API UDinoInventorySettings : public UDeveloperSettings {
 	UDinoInventorySettings();
 
 public:
-	// registry of all items that can be recognised by Dino system
-	UPROPERTY(EditAnywhere, Config, Category = "Dino Inventory Registry", meta = (DisplayName = "Inventory Registry Data"))
-	TSoftObjectPtr<UDinoInventoryRegistryData> SoftInventoryRegistryData;
 
 	// Override 
 	virtual FName GetCategoryName() const override { return TEXT("Dino"); }
+
+
+
+	// registry of all items that can be recognised by Dino system
+	UPROPERTY(EditAnywhere, Config, Category = "Dino Inventory Registry", meta = (DisplayName = "Inventory Item Registry Data"), meta = (RequiredAssetDataTags = "RowStructure=/Script/Dino.DinoInventoryItemData"))
+	TSoftObjectPtr<UDataTable> SoftInventoryRegistryData;
+
 
 };
 
@@ -41,7 +46,7 @@ public:
 
 	// returns a pointer to the Dino Inventory Register Data asset.
 	UFUNCTION(BlueprintCallable, Category = "Dino|Inventory")
-	static UDinoInventoryRegistryData* GetDinoInventoryRegistryData();
+	static UDataTable* GetDinoInventoryRegistryData();
 
 
 };

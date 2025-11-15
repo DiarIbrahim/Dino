@@ -39,7 +39,9 @@ public class Dino : ModuleRules
 				"Slate",
 				"SlateCore",
 				"GameplayTags",
-                "DeveloperSettings"
+                "DeveloperSettings",
+				"UMG",
+                "InputCore"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

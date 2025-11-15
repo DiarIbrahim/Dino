@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Code By : Diar Ibrahim,  Contact :  https://www.linkedin.com/in/diar-ibrahim-ali/
 
 
 #include "DinoInventorySettings.h"
@@ -11,7 +11,7 @@ UDinoInventorySettings::UDinoInventorySettings() {
 }
 
 
-UDinoInventoryRegistryData* UDinoInventorySettingsHelpers::GetDinoInventoryRegistryData()
+UDataTable* UDinoInventorySettingsHelpers::GetDinoInventoryRegistryData()
 {
 	const UDinoInventorySettings* Settings = GetDefault<UDinoInventorySettings>();
 	if (IsValid(Settings)) {

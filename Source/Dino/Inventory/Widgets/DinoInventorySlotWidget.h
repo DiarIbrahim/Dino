@@ -36,12 +36,34 @@ public:
 	UImage* Item_Image;
 
 
-
 	// --- Drag and Drop
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void   NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation);
 	virtual bool   NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation);
 	virtual void   NativeOnDragCancelled(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation);
+
+	virtual void NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation);
+	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation);
+
+	// when this slot dragged (drag staeted on this slot)
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Drag Started"))
+	void BP_OnDragStarted();
+	// when this slot receives a drop from other slots
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Received Drop successfully"))
+	void BP_OnRecivedDropSucessfully();
+	// when this slot droped on other slot
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Dropped Successfull"))
+	void BP_OnDroppedSucessfully();
+	// on drop operation failed
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Drop Failed"))
+	void BP_OnDropFailed();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Drag Hover Enter"))
+	void BP_OnDragHover_Enter(bool bCanBeDropped);
+	
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Drop Hover Leave"))
+	void BP_OnDragHover_Leave(bool bCanBeDropped);
+
 
 
 	// called when slot data set for the first time
@@ -70,6 +92,8 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly)
 	FDinoInventorySlot SlotData;
+
+	bool bWasValidDragHover = false;
 
 	
 };

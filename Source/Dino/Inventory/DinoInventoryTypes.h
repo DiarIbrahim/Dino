@@ -112,6 +112,22 @@ protected:
 
 
 
+
+// crafting data
+
+USTRUCT(BlueprintType)
+struct FDinoItemCraftDependency {
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FGameplayTag ItemTag;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	int32 RequiredQuantity = 1;
+
+};
+
+
+
 // Dino Inventtory Item Structure
 USTRUCT(BlueprintType)
 struct FDinoInventoryItemData : public FTableRowBase {
@@ -143,7 +159,7 @@ struct FDinoInventoryItemData : public FTableRowBase {
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Crafting")
 	EDinoInventoryCraftingType CraftingPolicy;
 
-	// UPROPERTY(EditAnywhere, meta = (EditCondition = "CraftingPolicy == EDinoInventoryCraftingType::Craftable"))
-
+	UPROPERTY(EditAnywhere, Category = "Crafting",  meta = (EditCondition = "CraftingPolicy == EDinoInventoryCraftingType::Craftable"))
+	TArray<FDinoItemCraftDependency> CraftDependencies;
 
 };

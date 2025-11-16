@@ -30,13 +30,18 @@ void UDinoInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 	Operation->DefaultDragVisual = DragVisualWidget;
 	Operation->SourceSlot = this;
 	
+	BP_OnDragStarted();
+
 	OutOperation = Operation;
 }
 
 bool UDinoInventorySlotWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	// this slot is already have item in it, we will ignore the drop call
-	if (IsValidSlotData()) return false;
+	if (IsValidSlotData()) {
+		BP_OnDropFailed();
+		return false;
+	}
 
 	if (UDinoInventoryDragDropOperation* DinoOperation = Cast<UDinoInventoryDragDropOperation>(InOperation)) {
 		if (IsValid(DinoOperation->SourceSlot)) {
@@ -45,16 +50,46 @@ bool UDinoInventorySlotWidget::NativeOnDrop(const FGeometry& InGeometry, const F
 			// empty source slot
 			DinoOperation->SourceSlot->EmptySlotData();
 
+			BP_OnRecivedDropSucessfully();
+
+			DinoOperation->SourceSlot->BP_OnDroppedSucessfully();
+
 			return true;
 		}
 	}
 
+	BP_OnDropFailed();
 	return false;
 }
 
 void UDinoInventorySlotWidget::NativeOnDragCancelled(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
-	// clear visual changes here
+	Super::OnDragCancelled(InDragDropEvent, InOperation);
+	BP_OnDropFailed();
+}
+
+void UDinoInventorySlotWidget::NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
+	Super::NativeOnDragEnter(InGeometry, InDragDropEvent, InOperation);
+
+	if (UDinoInventoryDragDropOperation* DinoOperation = Cast<UDinoInventoryDragDropOperation>(InOperation)) {
+		if (DinoOperation->SourceSlot != this && IsValidSlotData() == false) {
+			BP_OnDragHover_Enter(true);
+			bWasValidDragHover = true;
+			return;
+		}
+	}
+
+	BP_OnDragHover_Enter(false);
+	bWasValidDragHover = false;
+}
+
+void UDinoInventorySlotWidget::NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
+	Super::NativeOnDragLeave(InDragDropEvent, InOperation);
+
+	BP_OnDragHover_Leave(bWasValidDragHover);
+	bWasValidDragHover = false; // reset
 }
 
 

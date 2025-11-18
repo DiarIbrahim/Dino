@@ -45,18 +45,55 @@ public:
 	virtual void NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation);
 	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation);
 
-	// when this slot dragged (drag staeted on this slot)
-	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Drag Started"))
-	void BP_OnDragStarted();
-	// when this slot receives a drop from other slots
-	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Received Drop successfully"))
-	void BP_OnRecivedDropSucessfully();
-	// when this slot droped on other slot
-	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Dropped Successfull"))
-	void BP_OnDroppedSucessfully();
-	// on drop operation failed
-	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Drop Failed"))
-	void BP_OnDropFailed();
+
+	// are we allowing to drag this slot ?
+	UFUNCTION(BlueprintNativeEvent, Category = "Dino Inventory Slot")
+	bool IsDragAllowed();
+	virtual bool IsDragAllowed_Implementation();
+
+
+	// drag requested and sucessfully started
+	UFUNCTION(BlueprintNativeEvent, Category = "Dino Inventory Slot")
+	void DragStarted();
+	virtual void DragStarted_Implementation();
+
+	// can we drop here (an other slot is deagged to this slot)
+	UFUNCTION(BlueprintNativeEvent, Category = "Dino Inventory Slot")
+	bool CanReceiveDrop(UDinoInventoryDragDropOperation* Operation);
+	virtual bool CanReceiveDrop_Implementation(UDinoInventoryDragDropOperation* Operation);
+
+	// we accepted and recived a drop (from an other slot) (sucessful operation)
+	UFUNCTION(BlueprintNativeEvent, Category = "Dino Inventory Slot")
+	void DropReceived(UDinoInventoryDragDropOperation* Operation);
+	virtual void DropReceived_Implementation(UDinoInventoryDragDropOperation* Operation);
+
+	// when we are dropped on other slots (this slot dragged then dropped on an other slot) (sucessful operation)
+	UFUNCTION(BlueprintNativeEvent, Category = "Dino Inventory Slot")
+	void Dropped(UDinoInventoryDragDropOperation* Operation);
+	virtual void Dropped_Implementation(UDinoInventoryDragDropOperation* Operation);
+
+	// Drop Failed, when this item drogged and then drop operation failed or rejected
+	UFUNCTION(BlueprintNativeEvent, Category = "Dino Inventory Slot")
+	void DropFailed();
+	virtual void DropFailed_Implementation();
+
+	
+	// when data set for the first time (or data is cleared and set again)
+	UFUNCTION(BlueprintNativeEvent, Category = "Dino Inventory Slot")
+	void SetSlotData(const FDinoInventorySlot& InSlotData);
+	virtual void SetSlotData_Implementation(const FDinoInventorySlot& InSlotData);
+
+	// when data updated
+	UFUNCTION(BlueprintNativeEvent, Category = "Dino Inventory Slot")
+	void UpdateSlotData(const FDinoInventorySlot& InSlotData);
+	virtual void UpdateSlotData_Implementation(const FDinoInventorySlot& InSlotData);
+
+	// when data updated
+	UFUNCTION(BlueprintNativeEvent, Category = "Dino Inventory Slot")
+	void EmptySlotData();
+	virtual void EmptySlotData_Implementation();
+
+
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Drag Hover Enter"))
 	void BP_OnDragHover_Enter(bool bCanBeDropped);
@@ -64,22 +101,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Drop Hover Leave"))
 	void BP_OnDragHover_Leave(bool bCanBeDropped);
 
-
-
-	// called when slot data set for the first time
-	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Slot Data Set"))
-	void BP_SetSlotData(const FDinoInventorySlot& InSlotData);
-	void SetSlotData(const FDinoInventorySlot& InSlotData);
-
-	// called when slot data updated (e.g. Quantity updated)
-	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Slot Data Updated"))
-	void BP_UpdateSlotData(const FDinoInventorySlot& InSlotData);
-	void UpdateSlotData(const FDinoInventorySlot& InSlotData);
-
-	// clears the slot data
-	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Slot Data Cleared"))
-	void BP_EmptySlotData();
-	void EmptySlotData();
 
 	// returns true when the slot is holding a valid data
 	UFUNCTION(BlueprintPure)

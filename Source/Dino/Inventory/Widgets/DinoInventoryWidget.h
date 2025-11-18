@@ -45,7 +45,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Dino Inventory", meta = (ExposeOnSpawn = true))
 	UDinoInventoryComponent* InventoryComponent;
 
-
 protected:
 
 	virtual void NativeConstruct() override;

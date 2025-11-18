@@ -14,7 +14,7 @@ UDinoInventorySlotWidget::UDinoInventorySlotWidget(const FObjectInitializer& Obj
 FReply UDinoInventorySlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	// if we have valid data and drag detected
-	if (IsValidSlotData() &&  InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton)) {
+	if (IsDragAllowed() && InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton)) {
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
 	}
 
@@ -29,94 +29,130 @@ void UDinoInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 	UDinoInventoryDragDropOperation* Operation = NewObject<UDinoInventoryDragDropOperation>();
 	Operation->DefaultDragVisual = DragVisualWidget;
 	Operation->SourceSlot = this;
-	
-	BP_OnDragStarted();
 
 	OutOperation = Operation;
+	
+	DragStarted();
 }
 
 bool UDinoInventorySlotWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
-	// this slot is already have item in it, we will ignore the drop call
-	if (IsValidSlotData()) {
-		BP_OnDropFailed();
-		return false;
-	}
 
 	if (UDinoInventoryDragDropOperation* DinoOperation = Cast<UDinoInventoryDragDropOperation>(InOperation)) {
-		if (IsValid(DinoOperation->SourceSlot)) {
-			// copy the lsot data
-			SetSlotData(DinoOperation->SourceSlot->GetSlotData());
-			// empty source slot
-			DinoOperation->SourceSlot->EmptySlotData();
 
-			BP_OnRecivedDropSucessfully();
-
-			DinoOperation->SourceSlot->BP_OnDroppedSucessfully();
+		if (CanReceiveDrop(DinoOperation)) {
+			
+			DropReceived(DinoOperation); // we received a drop
+			DinoOperation->SourceSlot->Dropped(DinoOperation); // we are dropped
 
 			return true;
 		}
 	}
 
-	BP_OnDropFailed();
+	DropFailed();
 	return false;
 }
 
 void UDinoInventorySlotWidget::NativeOnDragCancelled(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	Super::OnDragCancelled(InDragDropEvent, InOperation);
-	BP_OnDropFailed();
+	DropFailed();
 }
 
 void UDinoInventorySlotWidget::NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	Super::NativeOnDragEnter(InGeometry, InDragDropEvent, InOperation);
 
-	if (UDinoInventoryDragDropOperation* DinoOperation = Cast<UDinoInventoryDragDropOperation>(InOperation)) {
-		if (DinoOperation->SourceSlot != this && IsValidSlotData() == false) {
-			BP_OnDragHover_Enter(true);
-			bWasValidDragHover = true;
-			return;
-		}
-	}
+	UDinoInventoryDragDropOperation* DinoOperation = Cast<UDinoInventoryDragDropOperation>(InOperation);
 
-	BP_OnDragHover_Enter(false);
-	bWasValidDragHover = false;
+	// invalid dino operation
+	if (IsValid(DinoOperation) == false) return;
+
+	//  same slot, no drag enter effect needed
+	if (DinoOperation->SourceSlot == this) return;
+
+	if (CanReceiveDrop(DinoOperation)) {
+		BP_OnDragHover_Enter(true);
+		bWasValidDragHover = true;
+	}
+	else {
+
+		BP_OnDragHover_Enter(false);
+		bWasValidDragHover = false;
+	}
 }
 
 void UDinoInventorySlotWidget::NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	Super::NativeOnDragLeave(InDragDropEvent, InOperation);
 
+	UDinoInventoryDragDropOperation* DinoOperation = Cast<UDinoInventoryDragDropOperation>(InOperation);
+	
+	// invalid dino operatopn
+	if (IsValid(DinoOperation) == false) return;
+
+	// same slot, no drag effect needed
+	if (DinoOperation->SourceSlot == this) return;
+
 	BP_OnDragHover_Leave(bWasValidDragHover);
 	bWasValidDragHover = false; // reset
+		
+	
 }
 
+bool UDinoInventorySlotWidget::IsDragAllowed_Implementation()
+{
+	// we should only drag slots that hold valid data
+	return IsValidSlotData();
+}
 
+void UDinoInventorySlotWidget::DragStarted_Implementation()
+{
+}
 
-void UDinoInventorySlotWidget::SetSlotData(const FDinoInventorySlot& InSlotData)
+bool UDinoInventorySlotWidget::CanReceiveDrop_Implementation(UDinoInventoryDragDropOperation* Operation)
+{
+	// In the base class, we will allow the drop as long as the slot is empty
+	// we might need more calulations for _Item class when we move slot from _craft slot to _item slot (like aditions and so on)
+	return !IsValidSlotData();
+}
+
+void UDinoInventorySlotWidget::DropReceived_Implementation(UDinoInventoryDragDropOperation* Operation)
+{
+	// copy the slot data
+	SetSlotData(Operation->SourceSlot->GetSlotData());
+}
+
+void UDinoInventorySlotWidget::Dropped_Implementation(UDinoInventoryDragDropOperation* Operation)
+{
+	// Clear our data
+	EmptySlotData();
+}
+
+void UDinoInventorySlotWidget::DropFailed_Implementation()
+{
+}
+
+void UDinoInventorySlotWidget::SetSlotData_Implementation(const FDinoInventorySlot& InSlotData)
 {
 	SlotData = InSlotData;
-	BP_SetSlotData(SlotData);
 }
 
-void UDinoInventorySlotWidget::UpdateSlotData(const FDinoInventorySlot& InSlotData)
+void UDinoInventorySlotWidget::UpdateSlotData_Implementation(const FDinoInventorySlot& InSlotData)
 {
 	if (IsValidSlotData() == false) return;
 
 	// make sure we only update when we receive an update for the same data
-	if (InSlotData.ItemTag.MatchesTagExact( SlotData.ItemTag) == false) return;
+	if (InSlotData.ItemTag.MatchesTagExact(SlotData.ItemTag) == false) return;
 
 	SlotData = InSlotData;
 
-	BP_UpdateSlotData(SlotData);
 }
 
-void UDinoInventorySlotWidget::EmptySlotData()
+
+void UDinoInventorySlotWidget::EmptySlotData_Implementation()
 {
 	SlotData = FDinoInventorySlot();
-
-	BP_EmptySlotData();
 }
 
 bool UDinoInventorySlotWidget::IsValidSlotData() const

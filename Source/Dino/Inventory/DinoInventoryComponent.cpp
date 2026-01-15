@@ -227,15 +227,17 @@ bool UDinoInventoryComponent::LockCraftingDependencyForItem(const FGameplayTag& 
 	
 	for(FDinoInventoryItemCraftingDependency Dependency  : OutItemData.CraftingData.CraftDependencies)
 	{
+		const int32 QuantityToLock = Dependency.RequiredQuantity * Quantity; 
+		
 		// is valid dependency
-		if(Dependency.ItemTag.IsValid() == false || Dependency.RequiredQuantity < 1) return false;
+		if(Dependency.ItemTag.IsValid() == false || QuantityToLock < 1) return false;
 		// check if we have dependency
 		if(InventorySlotContainer.ContainsItem(Dependency.ItemTag) == false) return false;
 		// quantity
-		if(InventorySlotContainer.ItemQuantity(Dependency.ItemTag)  < Dependency.RequiredQuantity * Quantity) return false;
+		if(InventorySlotContainer.ItemQuantity(Dependency.ItemTag)  < QuantityToLock) return false;
 		
 		// try Remove the dependency from the component using the internal function to allow delegates to fire 
-		 RemoveItemFromInventory_Internal(Dependency.ItemTag ,Dependency.RequiredQuantity);
+		 RemoveItemFromInventory_Internal(Dependency.ItemTag , QuantityToLock);
 	}
 
 	return true;
@@ -260,10 +262,12 @@ bool UDinoInventoryComponent::ReleaseCraftingDependencyForItem(UDinoInventoryCra
 
 	for(FDinoInventoryItemCraftingDependency Dependency  : OutItemData.CraftingData.CraftDependencies)
 	{
+		const int32 QuantityToRelease = Dependency.RequiredQuantity * Quantity;
+		
 		// is valid dependency
 		if(Dependency.ItemTag.IsValid() == false || Dependency.RequiredQuantity < 1) return false;
 		// try Add the dependency to the component using the internal function to allow delegates to fire 
-		AddItemToInventory_Internal(Dependency.ItemTag ,Dependency.RequiredQuantity * Quantity);
+		AddItemToInventory_Internal(Dependency.ItemTag ,Dependency.RequiredQuantity * QuantityToRelease);
 	}
 	return true;
 }

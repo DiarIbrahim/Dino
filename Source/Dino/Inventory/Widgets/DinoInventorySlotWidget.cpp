@@ -135,7 +135,9 @@ void UDinoInventorySlotWidget::DropFailed_Implementation()
 
 void UDinoInventorySlotWidget::SetSlotData_Implementation(const FDinoInventorySlot& InSlotData)
 {
-	SlotData = InSlotData;
+	if (InSlotData.IsValidSlot()) {
+		SlotData = InSlotData;
+	}
 }
 
 void UDinoInventorySlotWidget::UpdateSlotData_Implementation(const FDinoInventorySlot& InSlotData)

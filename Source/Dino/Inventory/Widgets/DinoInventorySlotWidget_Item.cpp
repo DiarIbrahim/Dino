@@ -3,9 +3,10 @@
 
 #include "DinoInventorySlotWidget_Item.h"
 #include "DinoInventorySlotWidget_Craft.h"
+#include "DinoInventoryWidget.h"
 #include "DragDrop/DinoInventoryDragDropOperation.h"
 
-void UDinoInventorySlotWidget_Item::InitializeWithInventoryWidget(UDinoInventoryWidget* InventoryWidget)
+void UDinoInventorySlotWidget_Item::SetOwningInventory(UDinoInventoryWidget* InventoryWidget)
 {
 	OwningInventoryWidget = InventoryWidget;
 }
@@ -15,11 +16,11 @@ bool UDinoInventorySlotWidget_Item::CanReceiveDrop_Implementation(UDinoInventory
 	if (IsValid(Operation) == false) return false;
 
 	// if from other item slot
-	if (Operation->SourceSlot->StaticClass()->IsChildOf<UDinoInventorySlotWidget_Item>()) {
+	if (UDinoInventorySlotWidget_Item* AsItem = Cast<UDinoInventorySlotWidget_Item>(Operation->SourceSlot)) {
 		// in this case we only allow drop from a valid Item slot to an Empty Slot
 		return !IsValidSlotData();
 	}
-	else if (Operation->SourceSlot->StaticClass()->IsChildOf<UDinoInventorySlotWidget_Craft>()){
+	else if (UDinoInventorySlotWidget_Craft* AsCraft = Cast<UDinoInventorySlotWidget_Craft>(Operation->SourceSlot)){
 		// we are moving back from craft slot to item slot, in this case the slot can have valid data or not
 
 		if (IsValidSlotData() == false) {
@@ -43,4 +44,9 @@ void UDinoInventorySlotWidget_Item::DropReceived_Implementation(UDinoInventoryDr
 	Super::DropReceived_Implementation(Operation);
 
 	// notify owner inventory about this change
+	if (IsValid(OwningInventoryWidget)) {
+		//
+		OwningInventoryWidget->UpdateInventorySlotMap(SlotData.ItemTag, this);
+	}
+
 }

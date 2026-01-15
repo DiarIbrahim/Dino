@@ -11,7 +11,7 @@
 
 
 
-class UDinoInventorySlotWidget;
+class UDinoInventorySlotWidget_Item_Item;
 class UDinoInventoryComponent;
 class UGridPanel;
 
@@ -36,23 +36,32 @@ public:
 	FMargin InventorySlotPadding = 5.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Dino Inventory")	
-	TSubclassOf<UDinoInventorySlotWidget> InventorySlotClass;
+	TSubclassOf<UDinoInventorySlotWidget_Item> InventorySlotClass;
 
 	UPROPERTY(meta = (BindWidget))
 	UGridPanel* InventoryGridPanel;
 
 	// a reference to the owning inventory component
 	UPROPERTY(BlueprintReadWrite, Category = "Dino Inventory", meta = (ExposeOnSpawn = true))
-	UDinoInventoryComponent* InventoryComponent;
+	UDinoInventoryComponent* OwningInventoryComponent;
+
+
+	// initialize the (for cases if the component not set during the spawn)
+	UFUNCTION(BlueprintCallable, Category = "Dino Inventory")
+	virtual void InitializeInventoryWidget(UDinoInventoryComponent* InOwningInventory);
+
+	// call when an item dragged so we update the occupied slots map
+	virtual void UpdateInventorySlotMap(const FGameplayTag& ItemTag, UDinoInventorySlotWidget_Item* NewSlotWidget);
+
 
 protected:
 
 	virtual void NativeConstruct() override;
 	virtual void NativePreConstruct() override;
 
-
 	// initializes and generates the inventory Gird and widgets
 	void InitializeSlots(const FDinoInventorySlotContainer& SlotContainer);
+
 
 
 	// --- Inventory Events
@@ -64,18 +73,19 @@ protected:
 	void OnInvenntoryItemRemoved(const FDinoInventorySlotContainer& SlotContainer, const FGameplayTag& ItemTag, bool bAllRemoved);
 
 
-
 	UFUNCTION(BlueprintPure)
 	bool HasEmptySlot() const;
 	UFUNCTION(BlueprintCallable)
 	int32 GetEmptySlotIndex() const;
 	UFUNCTION(BlueprintCallable)
-	UDinoInventorySlotWidget* GetEmptySlotToOccupy();
+	UDinoInventorySlotWidget_Item* GetEmptySlotToOccupy();
 
 private:
 
-	TArray<UDinoInventorySlotWidget*> InventorySlotWidgets;
-	TMap<FGameplayTag, UDinoInventorySlotWidget*> OccupiedSlots;
+	UPROPERTY()
+	TArray<UDinoInventorySlotWidget_Item*> InventorySlotWidgets;
+	UPROPERTY()
+	TMap<FGameplayTag, UDinoInventorySlotWidget_Item*> OccupiedSlots;
 
 
 };

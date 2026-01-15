@@ -7,10 +7,30 @@ bool FDinoInventorySlotContainer::ContainsItem(const FGameplayTag& InItemTag) co
 {
     for (const FDinoInventorySlot& Slot : Slots) {
 
-        if (Slot.ItemTag.MatchesTagExact(InItemTag)) return true;
+        if (Slot.ItemTag.MatchesTagExact(InItemTag))
+        {
+            // otherwise return true regardless of the quantity
+            return true;
+        }
     }
 
     return false;
+}
+
+int32 FDinoInventorySlotContainer::ItemQuantity(const FGameplayTag& InItemTag) const
+{
+    if(ContainsItem(InItemTag) == false) return -1;
+    
+    for (const FDinoInventorySlot& Slot : Slots) {
+
+        if (Slot.ItemTag.MatchesTagExact(InItemTag))
+        {
+            // otherwise return true regardless of the quantity
+            return Slot.ItemQuantity;
+        }
+    }
+
+    return -1;
 }
 
 bool FDinoInventorySlotContainer::AddItem(const FGameplayTag& InItemTag, int32 QuantityToAdd)

@@ -17,7 +17,7 @@ class DINO_API UDinoInventorySlotWidget_Item : public UDinoInventorySlotWidget
 
 public:
 
-	void InitializeWithInventoryWidget(UDinoInventoryWidget* InventoryWidget);
+	void SetOwningInventory(UDinoInventoryWidget* InventoryWidget);
 
 	// can receive drop
 	virtual bool CanReceiveDrop_Implementation(UDinoInventoryDragDropOperation* Operation)override;

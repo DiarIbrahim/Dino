@@ -6,7 +6,7 @@
 #include "Dino/Inventory/DinoInventoryComponent.h"
 #include "Components/GridPanel.h"
 #include "Components/GridSlot.h"
-#include "DinoInventorySlotWidget.h"
+#include "DinoInventorySlotWidget_Item.h"
 #include "Blueprint/WidgetTree.h"
 #include "Misc/UObjectToken.h"
 
@@ -15,14 +15,14 @@ void UDinoInventoryWidget::NativeConstruct()
 	Super::NativeConstruct();
 
 
-	if (IsValid(InventoryComponent)) {
-		
+	if (IsValid(OwningInventoryComponent)) {
+
 		// initialize slots
-		InitializeSlots(InventoryComponent->GetInventorySlots());
+		InitializeSlots(OwningInventoryComponent->GetInventorySlots());
 
 		// bind delegates
-		InventoryComponent->OnItemAdded.AddDynamic(this, &UDinoInventoryWidget::OnInvenntoryItemAdded);
-		InventoryComponent->OnItemRemoved.AddDynamic(this, &UDinoInventoryWidget::OnInvenntoryItemRemoved);
+		OwningInventoryComponent->OnItemAdded.AddDynamic(this, &UDinoInventoryWidget::OnInvenntoryItemAdded);
+		OwningInventoryComponent->OnItemRemoved.AddDynamic(this, &UDinoInventoryWidget::OnInvenntoryItemRemoved);
 
 	}
 }
@@ -48,6 +48,33 @@ void UDinoInventoryWidget::NativePreConstruct()
 }
 
 
+void UDinoInventoryWidget::InitializeInventoryWidget(UDinoInventoryComponent* InOwningInventory)
+{
+	if (IsValid(InOwningInventory) == false) return;
+
+	OwningInventoryComponent = InOwningInventory;
+
+	InitializeSlots(OwningInventoryComponent->GetInventorySlots());
+
+
+	// bind delegates
+	OwningInventoryComponent->OnItemAdded.AddDynamic(this, &UDinoInventoryWidget::OnInvenntoryItemAdded);
+	OwningInventoryComponent->OnItemRemoved.AddDynamic(this, &UDinoInventoryWidget::OnInvenntoryItemRemoved);
+
+}
+
+void UDinoInventoryWidget::UpdateInventorySlotMap(const FGameplayTag& ItemTag, UDinoInventorySlotWidget_Item* NewSlotWidget)
+{
+	// if item tag aand widget are vallid, update the occupied widgets Map
+	if (ItemTag.IsValid() == false && IsValid(NewSlotWidget) == false) return;
+
+
+	if(OccupiedSlots.Contains(ItemTag)){
+		OccupiedSlots[ItemTag] = NewSlotWidget;
+	}
+	
+}
+
 void UDinoInventoryWidget::InitializeSlots(const FDinoInventorySlotContainer& SlotContainer)
 {
 
@@ -56,15 +83,25 @@ void UDinoInventoryWidget::InitializeSlots(const FDinoInventorySlotContainer& Sl
 	
 	InventorySlotWidgets.Empty();
 	InventoryGridPanel->ClearChildren();
+	TArray<FDinoInventorySlot> CurrentSlots;
 
 	for (size_t i = 0; i < SlotContainer.GetMaxSlotCount(); i++) {
+
 
 		const int32 Row = i / InventoryColumns;
 		const int32 Column = i % InventoryColumns;
 		
-		UDinoInventorySlotWidget* NewSlot = WidgetTree->ConstructWidget<UDinoInventorySlotWidget>(InventorySlotClass);
-		// to ensure we know that the widget needs to be empty
-		NewSlot->EmptySlotData();
+		UDinoInventorySlotWidget_Item* NewSlot = WidgetTree->ConstructWidget<UDinoInventorySlotWidget_Item>(InventorySlotClass);
+		NewSlot->SetOwningInventory(this);
+
+		FDinoInventorySlot SlotData = FDinoInventorySlot();
+		if (CurrentSlots.IsValidIndex(i) && CurrentSlots[i].IsValidSlot()) {
+			SlotData = CurrentSlots[i];
+			NewSlot->SetSlotData(SlotData);
+		}
+		else {
+			NewSlot->EmptySlotData();
+		}
 
 		UGridSlot* GridSlot = InventoryGridPanel->AddChildToGrid(NewSlot, Row, Column);
 		GridSlot->SetPadding(InventorySlotPadding);
@@ -77,7 +114,7 @@ void UDinoInventoryWidget::OnInvenntoryItemAdded(const FDinoInventorySlotContain
 {
 	if (bFirstAddition) {
 		// createthe widget
-		UDinoInventorySlotWidget* SlotToOccupy = GetEmptySlotToOccupy();
+		UDinoInventorySlotWidget_Item* SlotToOccupy = GetEmptySlotToOccupy();
 		if (IsValid(SlotToOccupy)) {
 			
 			FDinoInventorySlot SlotData;
@@ -94,7 +131,7 @@ void UDinoInventoryWidget::OnInvenntoryItemAdded(const FDinoInventorySlotContain
 	}
 	else if(OccupiedSlots.Contains(ItemTag)){
 
-		if (UDinoInventorySlotWidget* SlotWidget = *OccupiedSlots.Find(ItemTag)) {
+		if (UDinoInventorySlotWidget_Item* SlotWidget = *OccupiedSlots.Find(ItemTag)) {
 
 			FDinoInventorySlot SlotData;
 			SlotContainer.GetItemSlot(ItemTag, SlotData);
@@ -108,7 +145,7 @@ void UDinoInventoryWidget::OnInvenntoryItemAdded(const FDinoInventorySlotContain
 void UDinoInventoryWidget::OnInvenntoryItemRemoved(const FDinoInventorySlotContainer& SlotContainer, const FGameplayTag& ItemTag, bool bAllRemoved)
 {
 	// find the occupied slot and empty
-	UDinoInventorySlotWidget* ItemSlotWidget = nullptr;
+	UDinoInventorySlotWidget_Item* ItemSlotWidget = nullptr;
 
 	if (OccupiedSlots.Contains(ItemTag)) {
 		ItemSlotWidget = *OccupiedSlots.Find(ItemTag);
@@ -150,7 +187,7 @@ int32 UDinoInventoryWidget::GetEmptySlotIndex() const
 	return -1;
 }
 
-UDinoInventorySlotWidget* UDinoInventoryWidget::GetEmptySlotToOccupy()
+UDinoInventorySlotWidget_Item* UDinoInventoryWidget::GetEmptySlotToOccupy()
 {
 	for (size_t i = 0; i < InventorySlotWidgets.Num(); i++) {
 		if (IsValid(InventorySlotWidgets[i]) && InventorySlotWidgets[i]->IsValidSlotData() == false) return InventorySlotWidgets[i];

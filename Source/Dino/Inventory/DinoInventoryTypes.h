@@ -7,6 +7,8 @@
 #include "Engine/DataTable.h"
 #include "DinoInventoryTypes.generated.h"
 
+class UDinoInventoryComponent;
+
 UENUM(BlueprintType)
 enum class EDinoInventoryItemType : uint8 {
 	
@@ -16,8 +18,9 @@ enum class EDinoInventoryItemType : uint8 {
 
 };
 
+// Crafting policy of dino items
 UENUM(BlueprintType)
-enum class EDinoInventoryCraftingType : uint8 {
+enum class EDinoInventoryItemCraftingPolicy : uint8 {
 
 	// the item can not be crafted and it only can be found and collected
 	NaturalResource UMETA(DisplayName = "Natural Resourse"),
@@ -25,6 +28,95 @@ enum class EDinoInventoryCraftingType : uint8 {
 	Craftable       UMETA(DisplayName = "Craftable")
 
 };
+
+// crafting data
+
+USTRUCT(BlueprintType)
+struct FDinoInventoryItemCraftingDependency {
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FGameplayTag ItemTag;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	int32 RequiredQuantity = 1;
+
+};
+
+
+
+// Crafting Data 
+USTRUCT(BlueprintType)
+struct FDinoInventoryItemCraftingData{
+
+	GENERATED_BODY()
+
+	// the crafting policy of this item
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EDinoInventoryItemCraftingPolicy CraftingPolicy;
+	
+	// what items dependencies needed for this item to be crafted
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition = "CraftingPolicy == EDinoInventoryItemCraftingPolicy::Craftable", EditConditionHides))
+	TArray<FDinoInventoryItemCraftingDependency> CraftDependencies;
+
+	// how long it takes for this item to be crafted
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ForceUnits = "s", EditCondition = "CraftingPolicy == EDinoInventoryItemCraftingPolicy::Craftable", EditConditionHides))
+	float CraftingDuration = 2.0f;
+
+	/*
+	 *  how often we tick when calculating the crafting duration (how many steps to complete the duration)
+	 *  i think of this as a way to optimize the crafting workers so they do not run on tick for calculating the duration and we still have a progress for the crafting,
+	 *  e.g. 10 steps means each the duration will be completed in 10 actions each action will take CraftingDuration / CraftingDurationSteps
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition = "CraftingPolicy == EDinoInventoryItemCraftingPolicy::Craftable", EditConditionHides))
+	int32 CraftingDurationSteps = 10;
+	
+};
+
+
+
+// Dino Inventtory Item Structure
+USTRUCT(BlueprintType)
+struct FDinoInventoryItemData : public FTableRowBase {
+	GENERATED_BODY();
+
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FGameplayTag ItemTag = FGameplayTag();
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FText ItemName = {};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FText ItemDescription = {};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	EDinoInventoryItemType ItemType;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TSoftObjectPtr<UTexture2D> ItemImage = nullptr;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float ItemWeight = 1.0f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FText ItemWeightUnit = {};
+
+	// crafting data for this item
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FDinoInventoryItemCraftingData CraftingData;
+
+	
+	// TODO Implement this
+	// Checks the dependencies of this item and returns true if we have all needed resources for this item to be crafted
+	bool ValidateCrafting(UDinoInventoryComponent* InventoryComponent){return true;}
+
+};
+
+
+
+
+
+
 
 
 // a slot represents an item that can be added to the inventory system
@@ -45,6 +137,7 @@ public:
 	int32 ItemCapacity = 10;
 
 	bool IsSlotFull() const { return ItemQuantity == ItemCapacity;}
+	bool IsValidSlot() const { return ItemTag.IsValid(); }
 
 	bool operator==(const FDinoInventorySlot& Other) const {
 		return ItemTag.MatchesTagExact(Other.ItemTag);
@@ -70,6 +163,8 @@ public:
 
 	// checks if an item is already added to one of the slots.
 	bool ContainsItem(const FGameplayTag& InItemTag) const;
+	// returns quantity of the item in the inventory
+	int32 ItemQuantity(const FGameplayTag& InItemTag) const;
 	// to add item to the inventory
 	bool AddItem(const FGameplayTag& InItemTag, int32 QuantityToAdd = 1);
 	// to remove a slot, if QuantityToRemove == -1 we remove the item, if not we subtract the quantity
@@ -112,54 +207,3 @@ protected:
 
 
 
-
-// crafting data
-
-USTRUCT(BlueprintType)
-struct FDinoItemCraftDependency {
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FGameplayTag ItemTag;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	int32 RequiredQuantity = 1;
-
-};
-
-
-
-// Dino Inventtory Item Structure
-USTRUCT(BlueprintType)
-struct FDinoInventoryItemData : public FTableRowBase {
-	GENERATED_BODY();
-
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FGameplayTag ItemTag = FGameplayTag();
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FText ItemName = {};
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FText ItemDescription = {};
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	EDinoInventoryItemType ItemType;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	TSoftObjectPtr<UTexture2D> ItemImage = nullptr;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float ItemWeight = 1.0f;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FText ItemWeightUnit = {};
-
-	// crafting policy for this item, items can be craftable or not
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Crafting")
-	EDinoInventoryCraftingType CraftingPolicy;
-
-	UPROPERTY(EditAnywhere, Category = "Crafting",  meta = (EditCondition = "CraftingPolicy == EDinoInventoryCraftingType::Craftable"))
-	TArray<FDinoItemCraftDependency> CraftDependencies;
-
-};

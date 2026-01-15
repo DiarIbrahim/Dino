@@ -34,5 +34,8 @@ public:
 	// returns data for an inventory item (returns true if the item is valid in the InventoryItemRegistry in Settings > Dino > Dino Inventory)
 	UFUNCTION(BlueprintCallable, Category = "Dino|Inventory")
 	static bool GetDinoInventoryItemData(const FGameplayTag& ItemTag, FDinoInventoryItemData& OutItemData);
+
+	// returns data for a pointer to an  inventory item(returns Valid pointer if the item is valid in the InventoryItemRegistry in Settings > Dino > Dino Inventory)
+	static FDinoInventoryItemData* GetDinoInventoryItemDataPointer(const FGameplayTag& ItemTag);
 	
 };

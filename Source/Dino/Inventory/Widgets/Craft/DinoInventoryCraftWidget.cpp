@@ -49,7 +49,9 @@ void UDinoInventoryCraftWidget::RegisterWithDinoInventoryComponent(UDinoInventor
 	
 	OwningInventoryComponent->OnItemAdded.AddDynamic(this, &UDinoInventoryCraftWidget::OnInvenntoryItemAdded);
 	OwningInventoryComponent->OnItemRemoved.AddDynamic(this, &UDinoInventoryCraftWidget::OnInvenntoryItemRemoved);
-
+	OwningInventoryComponent->OnCraftWorkerAdded.AddDynamic(this, &UDinoInventoryCraftWidget::CraftWorkerChanged);
+	OwningInventoryComponent->OnCraftWorkerRemoved.AddDynamic(this, &UDinoInventoryCraftWidget::CraftWorkerChanged);
+	
 	TArray<FDinoInventoryItemData> CraftableItems = UDinoInventoryFunctionLibrary::GetCraftableItems();
 	
 	InitializeCraftableSlots(CraftableItems);
@@ -62,7 +64,7 @@ void UDinoInventoryCraftWidget::RegisterWithDinoInventoryComponent(UDinoInventor
 void UDinoInventoryCraftWidget::OnInvenntoryItemAdded(const FDinoInventorySlotContainer& SlotContainer,
                                                       const FGameplayTag& ItemTag, bool bFirstAddition)
 {
-	// Update dependency statistics for selected grabable to be made
+	// Update dependency statistics for selected Craftable to be made
 	RefreshDependency();
 
 }
@@ -70,9 +72,15 @@ void UDinoInventoryCraftWidget::OnInvenntoryItemAdded(const FDinoInventorySlotCo
 void UDinoInventoryCraftWidget::OnInvenntoryItemRemoved(const FDinoInventorySlotContainer& SlotContainer,
 	const FGameplayTag& ItemTag, bool bAllRemoved)
 {
-	// Update dependency statistics for selected grabable to be made
+	// Update dependency statistics for selected Craftable to be made
 	RefreshDependency();
 
+}
+
+void UDinoInventoryCraftWidget::CraftWorkerChanged(UDinoInventoryCraftWorker* Worker)
+{
+	// Update dependency statistics for selected Craftable to be made
+	RefreshDependency();
 }
 
 void UDinoInventoryCraftWidget::GenerateItemsForEditor()

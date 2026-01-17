@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Dino/Inventory/DinoInventoryTypes.h"
+#include "Dino/Inventory/Craft/DinoInventoryCraftWorker.h"
 #include "DinoInventoryCraftWidget.generated.h"
 
 
@@ -81,6 +82,7 @@ public:
 	virtual void NativeConstruct() override;
 	virtual void NativePreConstruct() override;
 
+
 	UFUNCTION(BlueprintCallable, Category = "Dino Inventory")
 	void RegisterWithDinoInventoryComponent(UDinoInventoryComponent* InventoryComponent);
 
@@ -105,6 +107,8 @@ public:
 	UFUNCTION()
 	void OnInvenntoryItemRemoved(const FDinoInventorySlotContainer& SlotContainer, const FGameplayTag& ItemTag, bool bAllRemoved);
 
+	UFUNCTION()
+	void CraftWorkerChanged(UDinoInventoryCraftWorker* Worker);
 
 	
 };

@@ -34,3 +34,22 @@ bool UDinoInventoryFunctionLibrary::GetDinoInventoryItemData(const FGameplayTag&
     }
     return false;
 }
+
+TArray<FDinoInventoryItemData> UDinoInventoryFunctionLibrary::GetCraftableItems()
+{
+    TArray<FDinoInventoryItemData> CraftableItems = {};
+    if (UDataTable* DataTable = UDinoInventorySettingsHelpers::GetDinoInventoryRegistryData())
+    {
+        TArray<FDinoInventoryItemData*> OutRows;
+        DataTable->GetAllRows("", OutRows);
+
+        for (FDinoInventoryItemData* Row : OutRows) {
+            if(Row->CraftingData.CraftingPolicy == EDinoInventoryItemCraftingPolicy::Craftable){
+                CraftableItems.Add(*Row);
+            }
+        }
+        
+    }
+
+    return CraftableItems;
+}

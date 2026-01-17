@@ -22,17 +22,26 @@ protected:
 	UPROPERTY(BlueprintReadOnly, meta=(ExposeOnSpawn))
 	UDinoInventoryCraftWorker* CraftWorker;
 
+	UPROPERTY(EditAnywhere, Category="Dino Inventory|Crafting")
+	bool bAllowCanceling = true;
 
+
+	bool bIsCancelButtonShown = false;
 
 public:
 
 	virtual void NativeConstruct() override;
+	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
+	virtual void NativeOnMouseCaptureLost(const FCaptureLostEvent& CaptureLostEvent) override;
 
 	UFUNCTION(BlueprintCallable)
 	void SetCraftWorker(UDinoInventoryCraftWorker* InCraftWorker);
 	
-
 	void InitCraftingWidget();
+
+	UFUNCTION(BlueprintCallable)
+	void CancelCrafting();
 	
 	UFUNCTION(BlueprintImplementableEvent, DisplayName="Init Crafting Widget")
 	void BP_InitCraftingWidget(const FGameplayTag& ItemTag, int32 Quantity);
@@ -52,4 +61,16 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, DisplayName="Crafting Canceled")
 	void BP_OnCraftingCanceled();
 
+
+	UFUNCTION()
+	void ShowCancelButton();
+	UFUNCTION(BlueprintImplementableEvent, DisplayName="Show Cancel Button")
+	void BP_OnShowCancelButton();
+
+	UFUNCTION()
+	void HideCancelButton();
+	UFUNCTION(BlueprintImplementableEvent, DisplayName="Hide Cancel Button")
+	void BP_OnHideCancelButton();
+
+	
 };

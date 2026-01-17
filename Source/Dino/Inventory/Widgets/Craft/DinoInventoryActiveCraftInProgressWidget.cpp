@@ -3,6 +3,7 @@
 
 #include "DinoInventoryActiveCraftInProgressWidget.h"
 
+#include "Dino/Inventory/DinoInventoryComponent.h"
 #include "Dino/Inventory/Craft/DinoInventoryCraftWorker.h"
 
 void UDinoInventoryActiveCraftInProgressWidget::NativeConstruct()
@@ -13,6 +14,41 @@ void UDinoInventoryActiveCraftInProgressWidget::NativeConstruct()
 	{
 		InitCraftingWidget();
 	}
+}
+
+void UDinoInventoryActiveCraftInProgressWidget::NativeOnMouseEnter(const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
+
+	if(bAllowCanceling && !bIsCancelButtonShown)
+	{
+		ShowCancelButton();
+	}
+	
+}
+
+void UDinoInventoryActiveCraftInProgressWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseLeave(InMouseEvent);
+
+	
+	if(bAllowCanceling && bIsCancelButtonShown)
+	{
+		HideCancelButton();
+	}
+	
+}
+
+void UDinoInventoryActiveCraftInProgressWidget::NativeOnMouseCaptureLost(const FCaptureLostEvent& CaptureLostEvent)
+{
+	Super::NativeOnMouseCaptureLost(CaptureLostEvent);
+
+	if(bAllowCanceling && bIsCancelButtonShown)
+	{
+		HideCancelButton();
+	}
+	
 }
 
 void UDinoInventoryActiveCraftInProgressWidget::SetCraftWorker(UDinoInventoryCraftWorker* InCraftWorker)
@@ -35,6 +71,18 @@ void UDinoInventoryActiveCraftInProgressWidget::InitCraftingWidget()
 
 }
 
+void UDinoInventoryActiveCraftInProgressWidget::CancelCrafting()
+{
+	if(IsValid(CraftWorker))
+	{
+		UDinoInventoryComponent* InventoryComponent = CraftWorker->GetOwningComponent();
+		if(IsValid(InventoryComponent))
+		{
+			InventoryComponent->CancelCrafting(CraftWorker->GetCraftingItem());
+		}
+	}
+}
+
 void UDinoInventoryActiveCraftInProgressWidget::OnCraftingProgress(float Progress)
 {
 	BP_OnCraftingProgress(Progress);
@@ -52,4 +100,16 @@ void UDinoInventoryActiveCraftInProgressWidget::OnCraftingCanceled()
 	BP_OnCraftingCanceled();
 	// clear reference !
 	CraftWorker = nullptr;
+}
+
+void UDinoInventoryActiveCraftInProgressWidget::ShowCancelButton()
+{
+	bIsCancelButtonShown = true;
+	BP_OnShowCancelButton();
+}
+
+void UDinoInventoryActiveCraftInProgressWidget::HideCancelButton()
+{
+	bIsCancelButtonShown = false;
+	BP_OnHideCancelButton();
 }

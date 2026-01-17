@@ -106,7 +106,8 @@ public:
 
 
 	//// ----- Craft Item
-	
+
+	// asks the component to start crafting an item if the dependencies of the item exist in the inventory
 	UFUNCTION(BlueprintCallable, Category = "Dino Inventory")
 	void CraftItem(FGameplayTag ItemTag, int32 QuantityToCraft = 1);
 
@@ -114,6 +115,7 @@ public:
 	void Server_CraftItem(const FGameplayTag& ItemTag, int32 QuantityToCraft = 1);
 	void Server_CraftItem_Implementation(const FGameplayTag& ItemTag, int32 QuantityToCraft = 1);
 
+	// returns ture if crafting started 
 	bool CraftItem_Internal(const FGameplayTag& ItemTag, int32 QuantityToCraft = 1);
 	
 	UFUNCTION(BlueprintCallable, Category = "Dino Inventory")
@@ -129,6 +131,18 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Dino Inventory")
 	bool IsItemCraftingInProgress(const FGameplayTag& ItemTag);
+
+	// cancels and existing crafting process for an item and terminates the craft worker
+	UFUNCTION(BlueprintCallable, Category = "Dino Inventory")
+	void CancelCrafting(FGameplayTag ItemTag);
+
+	UFUNCTION(Server, Reliable)
+	void Server_CancelCrafting(const FGameplayTag& ItemTag);
+	void Server_CancelCrafting_Implementation(const FGameplayTag& ItemTag);
+
+	// returns true when canceling succeeded
+	bool CancelCrafting_Internal(const FGameplayTag& ItemTag);
+
 	
 	UFUNCTION()
 	void OnCraftWorkerDestroyed(UDinoInventoryCraftWorker* Worker);

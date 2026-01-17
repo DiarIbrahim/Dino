@@ -198,6 +198,41 @@ bool UDinoInventoryComponent::IsItemCraftingInProgress(const FGameplayTag& ItemT
 	return false;
 }
 
+void UDinoInventoryComponent::CancelCrafting(FGameplayTag ItemTag)
+{
+	if(GetOwner()->HasAuthority())
+	{
+		CancelCrafting_Internal(ItemTag);
+	}else if (GetOwnerRole() == ROLE_AutonomousProxy)
+	{
+		Server_CancelCrafting(ItemTag);
+	}
+}
+
+void UDinoInventoryComponent::Server_CancelCrafting_Implementation(const FGameplayTag& ItemTag)
+{
+	CancelCrafting_Internal(ItemTag);
+}
+
+bool UDinoInventoryComponent::CancelCrafting_Internal(const FGameplayTag& ItemTag)
+{
+	// should be called by server only
+	if(GetOwner()->HasAuthority() == false) return false;
+
+	for(UDinoInventoryCraftWorker* CraftWorker : CraftWorkers)
+	{
+		if(IsValid(CraftWorker) == false) continue;
+
+		if( ItemTag.MatchesTagExact(CraftWorker->GetCraftingItem()))
+		{
+			CraftWorker->CancelCrafting();
+			return true;
+		}
+	}
+	return false;
+	
+}
+
 void UDinoInventoryComponent::OnCraftWorkerDestroyed(UDinoInventoryCraftWorker* Worker)
 {
 	if(IsValid(Worker) == false) return;
@@ -267,7 +302,7 @@ bool UDinoInventoryComponent::ReleaseCraftingDependencyForItem(UDinoInventoryCra
 		// is valid dependency
 		if(Dependency.ItemTag.IsValid() == false || Dependency.RequiredQuantity < 1) return false;
 		// try Add the dependency to the component using the internal function to allow delegates to fire 
-		AddItemToInventory_Internal(Dependency.ItemTag ,Dependency.RequiredQuantity * QuantityToRelease);
+		AddItemToInventory_Internal(Dependency.ItemTag ,QuantityToRelease);
 	}
 	return true;
 }

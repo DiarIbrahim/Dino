@@ -19,7 +19,7 @@ bool FDinoInventorySlotContainer::ContainsItem(const FGameplayTag& InItemTag) co
 
 int32 FDinoInventorySlotContainer::ItemQuantity(const FGameplayTag& InItemTag) const
 {
-    if(ContainsItem(InItemTag) == false) return -1;
+    if(ContainsItem(InItemTag) == false) return 0;
     
     for (const FDinoInventorySlot& Slot : Slots) {
 
@@ -30,7 +30,7 @@ int32 FDinoInventorySlotContainer::ItemQuantity(const FGameplayTag& InItemTag) c
         }
     }
 
-    return -1;
+    return 0;
 }
 
 bool FDinoInventorySlotContainer::AddItem(const FGameplayTag& InItemTag, int32 QuantityToAdd)

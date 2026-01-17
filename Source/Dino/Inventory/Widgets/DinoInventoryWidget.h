@@ -46,6 +46,16 @@ public:
 	UDinoInventoryComponent* OwningInventoryComponent;
 
 
+protected:
+	UPROPERTY()
+	TArray<UDinoInventorySlotWidget_Item*> InventorySlotWidgets;
+	UPROPERTY()
+	TMap<FGameplayTag, UDinoInventorySlotWidget_Item*> OccupiedSlots;
+
+
+
+public:
+
 	// initialize the (for cases if the component not set during the spawn)
 	UFUNCTION(BlueprintCallable, Category = "Dino Inventory")
 	virtual void InitializeInventoryWidget(UDinoInventoryComponent* InOwningInventory);
@@ -79,13 +89,6 @@ protected:
 	int32 GetEmptySlotIndex() const;
 	UFUNCTION(BlueprintCallable)
 	UDinoInventorySlotWidget_Item* GetEmptySlotToOccupy();
-
-private:
-
-	UPROPERTY()
-	TArray<UDinoInventorySlotWidget_Item*> InventorySlotWidgets;
-	UPROPERTY()
-	TMap<FGameplayTag, UDinoInventorySlotWidget_Item*> OccupiedSlots;
 
 
 };

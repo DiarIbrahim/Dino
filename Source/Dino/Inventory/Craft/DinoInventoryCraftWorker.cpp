@@ -76,7 +76,8 @@ FGameplayTag UDinoInventoryCraftWorker::GetCraftingItem() const
 int32 UDinoInventoryCraftWorker::GetRemainingTimeInSeconds() const
 {
 	const float OverAllDuration = ItemCraftData.CraftingDuration * WorkerData.QuantityToCraft;
-	return FMath::TruncToInt( OverAllDuration *  GetProgress());
+	const float RemainingTime = OverAllDuration  - (OverAllDuration * GetProgress());
+	return FMath::TruncToInt(RemainingTime);
 }
 
 bool UDinoInventoryCraftWorker::IsCompleted() const

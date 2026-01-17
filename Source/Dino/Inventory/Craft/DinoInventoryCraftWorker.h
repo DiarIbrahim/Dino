@@ -83,9 +83,6 @@ public:
 	// called when we explicitly cancel a crafting worker
 	virtual void CancelCrafting();
 
-	UFUNCTION(Client, Reliable)
-	void Client_CancelCrafting();
-
 	UFUNCTION(BlueprintPure)
 	FGameplayTag GetCraftingItem() const;
 
@@ -100,6 +97,9 @@ public:
 	
 	UFUNCTION(BlueprintPure)
 	float GetProgress() const;
+
+	UFUNCTION(BLueprintPure)
+	UDinoInventoryComponent* GetOwningComponent() const{return OwningComponent;}
 	
 protected:
 
@@ -109,6 +109,9 @@ protected:
 	float GetTickInterval() const;
 
 	
+	UFUNCTION(Client, Reliable)
+	void Client_CancelCrafting();
+
 	// called when crafting successfully completed and crafted item added to the inventory
 	virtual void CraftingCompleted();
 	// called when worker is about to destroy

@@ -58,7 +58,7 @@ public:
 
 	// initialize the (for cases if the component not set during the spawn)
 	UFUNCTION(BlueprintCallable, Category = "Dino Inventory")
-	virtual void InitializeInventoryWidget(UDinoInventoryComponent* InOwningInventory);
+	virtual void RegisterWithInventoryComponent(UDinoInventoryComponent* InOwningInventory);
 
 	// call when an item dragged so we update the occupied slots map
 	virtual void UpdateInventorySlotMap(const FGameplayTag& ItemTag, UDinoInventorySlotWidget_Item* NewSlotWidget);

@@ -17,13 +17,7 @@ void UDinoInventoryWidget::NativeConstruct()
 
 	if (IsValid(OwningInventoryComponent)) {
 
-		// initialize slots
-		InitializeSlots(OwningInventoryComponent->GetInventorySlots());
-
-		// bind delegates
-		OwningInventoryComponent->OnItemAdded.AddDynamic(this, &UDinoInventoryWidget::OnInvenntoryItemAdded);
-		OwningInventoryComponent->OnItemRemoved.AddDynamic(this, &UDinoInventoryWidget::OnInvenntoryItemRemoved);
-
+		RegisterWithInventoryComponent(OwningInventoryComponent);
 	}
 }
 
@@ -47,8 +41,7 @@ void UDinoInventoryWidget::NativePreConstruct()
 
 }
 
-
-void UDinoInventoryWidget::InitializeInventoryWidget(UDinoInventoryComponent* InOwningInventory)
+void UDinoInventoryWidget::RegisterWithInventoryComponent(UDinoInventoryComponent* InOwningInventory)
 {
 	if (IsValid(InOwningInventory) == false) return;
 
@@ -60,14 +53,12 @@ void UDinoInventoryWidget::InitializeInventoryWidget(UDinoInventoryComponent* In
 	// bind delegates
 	OwningInventoryComponent->OnItemAdded.AddDynamic(this, &UDinoInventoryWidget::OnInvenntoryItemAdded);
 	OwningInventoryComponent->OnItemRemoved.AddDynamic(this, &UDinoInventoryWidget::OnInvenntoryItemRemoved);
-
 }
 
 void UDinoInventoryWidget::UpdateInventorySlotMap(const FGameplayTag& ItemTag, UDinoInventorySlotWidget_Item* NewSlotWidget)
 {
 	// if item tag aand widget are vallid, update the occupied widgets Map
 	if (ItemTag.IsValid() == false && IsValid(NewSlotWidget) == false) return;
-
 
 	if(OccupiedSlots.Contains(ItemTag)){
 		OccupiedSlots[ItemTag] = NewSlotWidget;
@@ -77,8 +68,6 @@ void UDinoInventoryWidget::UpdateInventorySlotMap(const FGameplayTag& ItemTag, U
 
 void UDinoInventoryWidget::InitializeSlots(const FDinoInventorySlotContainer& SlotContainer)
 {
-
-
 	if (IsValid(InventoryGridPanel) == false || IsValid(InventorySlotClass) == false) return;
 	
 	InventorySlotWidgets.Empty();

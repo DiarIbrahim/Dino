@@ -3,126 +3,80 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Dino/Inventory/DinoInventoryTypes.h"
+#include "Net/Serialization/FastArraySerializer.h"
 #include "UObject/Object.h"
+#include "GameplayTagContainer.h"
 #include "DinoInventoryCraftWorker.generated.h"
 
 class UDinoInventoryComponent;
 
 
-
 USTRUCT(BlueprintType)
-struct FDinoInventoryCraftWorkerData
+struct FDinoInventoryCraftWorker : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly)
-	FGameplayTag ItemToCraft = {};
+	FDinoInventoryCraftWorker(){}
+	FDinoInventoryCraftWorker(const FGameplayTag&  InItemTag, const int32 InQuantityToCraft, float InDuration) : ItemToCraft(InItemTag), QuantityToCraft(InQuantityToCraft), Duration(InDuration){}
 
+	UPROPERTY(BlueprintReadOnly)
+	FGameplayTag ItemToCraft;
+	
 	UPROPERTY(BlueprintReadOnly)
 	int32 QuantityToCraft = 1;
 	
 	UPROPERTY(BlueprintReadOnly)
 	bool bResourcesLocked = false;
 
+	// over all progress for this worker (time spent working on crafting this item)
 	UPROPERTY(BlueprintReadOnly)
-	float OverAllProgress = 0.0f;
+	float Progress = 0.0f;
 
+	// over all duration to craft @QuantityToCraft amount of this item
+	UPROPERTY(BlueprintReadOnly)
+	float Duration = 0.0f;
+
+
+	float GetProgressPercent() const;
+	// if this item is already completed
+	bool IsCompleted() const;
+	// if this item will completed next tick (we need this to deny request to cancel items when they are just very close to be completed)
+	bool WillCompletedNextTick(float TickInterval = 1.f/10.f) const;
+	bool IsValid() const;
+	
+
+	FORCEINLINE bool operator ==(const FDinoInventoryCraftWorker& Other) const
+	{
+		return ItemToCraft.MatchesTagExact(Other.ItemToCraft);
+	}
+
+	FORCEINLINE friend int32 GetTypeHash(const FDinoInventoryCraftWorker& InventoryCraftWorker)
+	{
+		return GetTypeHash(InventoryCraftWorker.ItemToCraft);
+	}
 };
 
 
-/**
- *   this object is responsible for crafting craftable items in DinoInventoryComponent
- *   this will lock Resources needed for crafting a specific item, will add the crafted item to the Inventory when completed.
- */
-UCLASS()
-class DINO_API UDinoInventoryCraftWorker : public UObject
+USTRUCT(BlueprintType)
+struct FDinoInventoryCraftWorkerContainer : public FFastArraySerializer
 {
 	GENERATED_BODY()
-
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDinoInventoryCraftWorkerDestroyDelegate, UDinoInventoryCraftWorker*, Worker);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDinoInventoryCraftWorkerDelegate);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDinoInventoryCraftWorkerProgressDelegate, float , Progress);
 	
-public:
+	bool AddWorker(FDinoInventoryCraftWorker NewWorker);
+	bool RemoveWorker(const FDinoInventoryCraftWorker& Worker);
+	bool WorkerExists(const FDinoInventoryCraftWorker& Worker);
+	bool WorkerExists(const FGameplayTag& Worker);
+	bool HasActiveWorker() const;
+	FDinoInventoryCraftWorker* FindItemWorker(const FGameplayTag& InItemTag);
 	
-	UPROPERTY(BlueprintAssignable)
-	FDinoInventoryCraftWorkerDelegate OnCompleted;
-	UPROPERTY(BlueprintAssignable)
-	FDinoInventoryCraftWorkerDelegate OnCanceled;
-	UPROPERTY(BlueprintAssignable)
-	FDinoInventoryCraftWorkerProgressDelegate OnProgress;
+	void Clear();
 
-	UPROPERTY(BlueprintAssignable)
-	FDinoInventoryCraftWorkerDestroyDelegate OnDestroy;
+	void ClearAll();
 
-	
-protected:
 	
 	UPROPERTY(BlueprintReadOnly)
-	UDinoInventoryComponent* OwningComponent;
-	
-	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_WorkerData)
-	FDinoInventoryCraftWorkerData WorkerData;
-	
-	UPROPERTY(BlueprintReadOnly)
-	FDinoInventoryItemCraftingData ItemCraftData;
-	
-	UPROPERTY(BlueprintReadOnly)
-	FTimerHandle WorkerTickTimerHandle;
-
-
-	// this is over all time passed since we started crafting, this is sever-only value and only changing on server
-	float TimeProgress = 0.0f;
-
-public:
-
-	
-	// start crafting an item
-	virtual void StartCrafting(UDinoInventoryComponent* InOwningComponent,const FGameplayTag& InItemTag, int32 InQuantityToCraft);
-	// called when we explicitly cancel a crafting worker
-	virtual void CancelCrafting();
-
-	UFUNCTION(BlueprintPure)
-	FGameplayTag GetCraftingItem() const;
-
-	UFUNCTION(BlueprintPure)
-	int32 GetRemainingTimeInSeconds() const;
-
-	UFUNCTION(BlueprintPure)
-	int32 GetCraftingItemQuantity() const {return WorkerData.QuantityToCraft;};
-
-	UFUNCTION(BlueprintPure)
-	bool IsCompleted() const;
-	
-	UFUNCTION(BlueprintPure)
-	float GetProgress() const;
-
-	UFUNCTION(BLueprintPure)
-	UDinoInventoryComponent* GetOwningComponent() const{return OwningComponent;}
-	
-protected:
-
-	// tick
-	void OnTick_Internal();
-	virtual void WorkerTick(float DeltaTime);
-	float GetTickInterval() const;
-
-	
-	UFUNCTION(Client, Reliable)
-	void Client_CancelCrafting();
-
-	// called when crafting successfully completed and crafted item added to the inventory
-	virtual void CraftingCompleted();
-	// called when worker is about to destroy
-	virtual void DestroyWorker();
-
-	// to release the resources when the crafting is failing or cancels
-	void ReleaseResources();
-
-	UFUNCTION()
-	void OnRep_WorkerData();
-	
-
-	
+	TArray<FDinoInventoryCraftWorker> Items;
 };
+
+
+

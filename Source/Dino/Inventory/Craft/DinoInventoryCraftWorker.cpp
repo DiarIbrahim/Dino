@@ -8,14 +8,88 @@
 #include "Net/UnrealNetwork.h"
 
 
-void UDinoInventoryCraftWorker::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+float FDinoInventoryCraftWorker::GetProgressPercent() const
 {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	return FMath::Clamp(Progress/Duration, 0.0f,1.0f);
+}
 
-	DOREPLIFETIME_CONDITION(UDinoInventoryCraftWorker ,WorkerData , COND_OwnerOnly);
+bool FDinoInventoryCraftWorker::IsValid() const
+{
+	return ItemToCraft.IsValid() && QuantityToCraft > 0;	
+}
+
+bool FDinoInventoryCraftWorker::IsCompleted() const
+{
+	return Progress >= Duration;
+}
+
+bool FDinoInventoryCraftWorker::WillCompletedNextTick(float TickInterval) const
+{
+	return (Progress + TickInterval) >= Duration;
+}
+
+bool FDinoInventoryCraftWorkerContainer::AddWorker(FDinoInventoryCraftWorker NewWorker)
+{
+	if(Items.Contains(NewWorker)) return false;
+	Items.Add(NewWorker);
+	return true;
+}
+
+bool FDinoInventoryCraftWorkerContainer::RemoveWorker(const FDinoInventoryCraftWorker& Worker)
+{
+	if(Items.Contains(Worker) == false) return false;
+	Items.Remove(Worker);
+	return true;
+}
+
+bool FDinoInventoryCraftWorkerContainer::WorkerExists(const FDinoInventoryCraftWorker& Worker)
+{
+	return Items.Contains(Worker);
+}
+
+bool FDinoInventoryCraftWorkerContainer::WorkerExists(const FGameplayTag& Worker)
+{
+	for(FDinoInventoryCraftWorker Item : Items)
+	{
+		if(Item.ItemToCraft.MatchesTagExact(Worker))
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+bool FDinoInventoryCraftWorkerContainer::HasActiveWorker() const
+{
+	return Items.IsEmpty() == false;
+}
+
+FDinoInventoryCraftWorker* FDinoInventoryCraftWorkerContainer::FindItemWorker(const FGameplayTag& InItemTag)
+{
+	for(FDinoInventoryCraftWorker& Worker : Items)
+	{
+		if(Worker.ItemToCraft == InItemTag) return &Worker;
+	}
+	return nullptr;
 }
 
 
+
+void FDinoInventoryCraftWorkerContainer::Clear()
+{
+	Items.Empty();
+}
+
+
+/*
+UDinoInventoryCraftWorker::UDinoInventoryCraftWorker()
+{
+	
+}
+*/
+
+/*
 void UDinoInventoryCraftWorker::StartCrafting(UDinoInventoryComponent* InOwningComponent,const FGameplayTag& InItemTag, int32 InQuantityToCraft)
 {
 	// component invalid
@@ -25,7 +99,7 @@ void UDinoInventoryCraftWorker::StartCrafting(UDinoInventoryComponent* InOwningC
 		return;
 	}
 
-	// worker should dbe started only on server
+	// worker should be started only on server
 	if(InOwningComponent->GetOwner()->HasAuthority() == false) return;
 
 	// item invalid
@@ -153,7 +227,7 @@ void UDinoInventoryCraftWorker::OnRep_WorkerData()
 {
 	// worker data replicated !
 	
-	if(OwningComponent->GetOwnerRole() == ROLE_AutonomousProxy)
+	if(OwningComponent->IsLocallyControlled())
 	{
 		// we are the locally controlled client, fire delegates if needed
 
@@ -165,3 +239,4 @@ void UDinoInventoryCraftWorker::OnRep_WorkerData()
 		}
 	}
 }
+*/

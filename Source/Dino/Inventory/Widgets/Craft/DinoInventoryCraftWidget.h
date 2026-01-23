@@ -108,7 +108,7 @@ public:
 	void OnInvenntoryItemRemoved(const FDinoInventorySlotContainer& SlotContainer, const FGameplayTag& ItemTag, bool bAllRemoved);
 
 	UFUNCTION()
-	void CraftWorkerChanged(UDinoInventoryCraftWorker* Worker);
+	void CraftWorkerChanged(const FDinoInventoryCraftWorker& Worker);
 
 	
 };

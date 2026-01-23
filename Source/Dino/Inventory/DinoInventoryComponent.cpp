@@ -35,6 +35,24 @@ void UDinoInventoryComponent::BeginPlay()
 	Initialize();
 }
 
+void UDinoInventoryComponent::TickComponent(float DeltaTime, enum ELevelTick TickType,
+	FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if(GetOwner()->HasAuthority() && CraftWorkers.HasActiveWorker())
+	{
+		CraftWorkerTickTimeCounter += DeltaTime;
+
+		if(CraftWorkerTickTimeCounter >= CraftWorkerTickInterval)
+		{
+			CraftWorkerTick(CraftWorkerTickInterval);
+			CraftWorkerTickTimeCounter = 0.0f;
+		}
+	}
+	
+}
+
 void UDinoInventoryComponent::Initialize()
 {
 	// initialize the inventory
@@ -142,18 +160,24 @@ bool UDinoInventoryComponent::CraftItem_Internal(const FGameplayTag& ItemTag, in
 
 	// this item is in crafting progress, can not add more Worker !
 	if(IsItemCraftingInProgress(ItemTag)) return false;
-	
+
+
 	// crafting denied
 	if(CanCraftItem(ItemTag) == false) return false;
 	
 	// lock dependencies
 	if(LockCraftingDependencyForItem(ItemTag, QuantityToCraft))
 	{
-		UDinoInventoryCraftWorker* CraftWorker  = NewObject<UDinoInventoryCraftWorker>(this);
-		CraftWorker->StartCrafting(this,ItemTag, QuantityToCraft);
-		CraftWorker->OnDestroy.AddDynamic(this, &UDinoInventoryComponent::OnCraftWorkerDestroyed);
-		OnCraftWorkerAdded.Broadcast(CraftWorker);
-		CraftWorkers.Add(CraftWorker);
+
+		FDinoInventoryItemData OutItemData;
+		UDinoInventoryFunctionLibrary::GetDinoInventoryItemData(ItemTag,OutItemData);
+		
+		const float CraftDuration = OutItemData.CraftingData.CraftingDuration * QuantityToCraft;
+	
+		FDinoInventoryCraftWorker NewWorker = FDinoInventoryCraftWorker(ItemTag, QuantityToCraft, CraftDuration);
+		
+		OnCraftWorkerAdded.Broadcast(NewWorker);
+		CraftWorkers.AddWorker(NewWorker);
 		return true;
 	}
 
@@ -190,12 +214,31 @@ bool UDinoInventoryComponent::CanCraftItem(const FGameplayTag& ItemTag, int32 Qu
 
 bool UDinoInventoryComponent::IsItemCraftingInProgress(const FGameplayTag& ItemTag)
 {
-	for(UDinoInventoryCraftWorker* CraftWorker :CraftWorkers)
+	if(FDinoInventoryCraftWorker* Worker = CraftWorkers.FindItemWorker(ItemTag))
 	{
-		if(IsValid(CraftWorker) == false) continue;
-		if( ItemTag.MatchesTagExact(CraftWorker->GetCraftingItem())) return true;
+		// there is an active progress for this item that is not completed yet
+		return Worker->IsCompleted() == false;
 	}
+
 	return false;
+}
+
+float UDinoInventoryComponent::GetCraftProgressForItem(const FGameplayTag& ItemTag)
+{
+	if(const FDinoInventoryCraftWorker* ActiveWorker = CraftWorkers.FindItemWorker(ItemTag))
+	{
+		return ActiveWorker->GetProgressPercent();
+	}
+	return 0.0f;
+}
+
+FDinoInventoryCraftWorker UDinoInventoryComponent::GetActiveCraftWorkerData(const FGameplayTag& ItemTag)
+{
+	if(const FDinoInventoryCraftWorker* ActiveWorker = CraftWorkers.FindItemWorker(ItemTag))
+	{
+		return *ActiveWorker;
+	}
+	return FDinoInventoryCraftWorker();
 }
 
 void UDinoInventoryComponent::CancelCrafting(FGameplayTag ItemTag)
@@ -219,33 +262,63 @@ bool UDinoInventoryComponent::CancelCrafting_Internal(const FGameplayTag& ItemTa
 	// should be called by server only
 	if(GetOwner()->HasAuthority() == false) return false;
 
-	for(UDinoInventoryCraftWorker* CraftWorker : CraftWorkers)
+	if(FDinoInventoryCraftWorker* Worker = CraftWorkers.FindItemWorker(ItemTag))
 	{
-		if(IsValid(CraftWorker) == false) continue;
+		
+		FDinoInventoryCraftWorker WorkerData = *Worker;
 
-		if( ItemTag.MatchesTagExact(CraftWorker->GetCraftingItem()))
+		// allow cancel if only crafting is not close to be completed
+		if(WorkerData.WillCompletedNextTick(CraftWorkerTickInterval) == false)
 		{
-			CraftWorker->CancelCrafting();
-			return true;
+			// release resources
+			ReleaseCraftingDependencyForItem(WorkerData.ItemToCraft, WorkerData.QuantityToCraft);
+			// cancel this
+			CraftWorkers.RemoveWorker(WorkerData);
+			// cancel
+			OnCraftWorkerCanceled.Broadcast(WorkerData);
 		}
 	}
 	return false;
 	
 }
 
-void UDinoInventoryComponent::OnCraftWorkerDestroyed(UDinoInventoryCraftWorker* Worker)
+void UDinoInventoryComponent::CraftWorkerTick(float DeltaTime)
 {
-	if(IsValid(Worker) == false) return;
-
-	Worker->OnDestroy.RemoveAll(this);
-
+	TArray<FDinoInventoryCraftWorker> CompletedWorkers;
 	
-	if(CraftWorkers.Contains(Worker))
+	for (FDinoInventoryCraftWorker& Worker  : CraftWorkers.Items)
 	{
-		CraftWorkers.Remove(Worker);
+		// add progress
+		Worker.Progress+=DeltaTime;
 
-		OnCraftWorkerRemoved.Broadcast(Worker);
+		OnCraftWorkerProgress.Broadcast(Worker);
+
+		if(Worker.IsCompleted())
+		{
+			// Add worker's data
+			AddItemToInventory(Worker.ItemToCraft, Worker.QuantityToCraft);
+			// Pin worker to be removed later
+			CompletedWorkers.Add(Worker);
+			// 
+			OnCraftWorkerCompleted.Broadcast(Worker);
+		}
 	}
+
+	// remove workers that are completed
+	for(FDinoInventoryCraftWorker& Worker : CompletedWorkers)
+	{
+		CraftWorkers.RemoveWorker(Worker);
+	}
+}
+
+bool UDinoInventoryComponent::IsLocallyControlled() const
+{
+	if(IsValid(OwningPawn))
+	{
+		return OwningPawn->IsLocallyControlled();
+	}
+
+	return false;
 }
 
 
@@ -278,16 +351,10 @@ bool UDinoInventoryComponent::LockCraftingDependencyForItem(const FGameplayTag& 
 	return true;
 }
 
-bool UDinoInventoryComponent::ReleaseCraftingDependencyForItem(UDinoInventoryCraftWorker* CraftWorker,
-	const  FGameplayTag& ItemTag, int32 Quantity)
+bool UDinoInventoryComponent::ReleaseCraftingDependencyForItem(const  FGameplayTag& ItemTag, int32 Quantity)
 {
 	// if called on clients
 	if(GetOwner()->HasAuthority() == false) return false;
-	// if invalid worker
-	if(IsValid(CraftWorker) == false) return false;
-	// Craft worker is not registered
-	if(CraftWorkers.Contains(CraftWorker)== false) return false;
-
 	// get item data
 	FDinoInventoryItemData OutItemData;
 	if(UDinoInventoryFunctionLibrary::GetDinoInventoryItemData(ItemTag,OutItemData) == false) return false;
@@ -311,7 +378,7 @@ bool UDinoInventoryComponent::ReleaseCraftingDependencyForItem(UDinoInventoryCra
 void UDinoInventoryComponent::OnRep_Inventory()
 {
 
-	if(OwningPawn->IsLocallyControlled())
+	if(IsLocallyControlled())
 	{
 		// detect if an item added (or stack count changed for existing items)
 		for (const FDinoInventorySlot& Item : InventorySlotContainer.GetSlots()) // assuming Items is TArray<UDinoInventoryItem*>
@@ -361,31 +428,43 @@ void UDinoInventoryComponent::OnRep_Inventory()
 void UDinoInventoryComponent::OnRep_CraftedWorkers()
 {
 
-	if(OwningPawn->IsLocallyControlled())
+	if(IsLocallyControlled())
 	{
-		for (UDinoInventoryCraftWorker* Worker : CraftWorkers)
+		for (const FDinoInventoryCraftWorker& Worker : CraftWorkers.Items)
 		{
-			if (!PreviousCraftWorkers.Contains(Worker))
+			if (!PreviousCraftWorkers.WorkerExists(Worker))
 			{
 				// New worker added
 				OnCraftWorkerAdded.Broadcast(Worker);
 			}
 		}
 
-		// 2️Detect removed workers
-		for (TWeakObjectPtr<UDinoInventoryCraftWorker> OldWorker : PreviousCraftWorkers)
+		// Detect removed workers
+		for (const FDinoInventoryCraftWorker& OldWorker : PreviousCraftWorkers.Items)
 		{
-			if (OldWorker.IsValid() && !CraftWorkers.Contains(OldWorker.Get()))
+			if (OldWorker.IsValid() && !CraftWorkers.WorkerExists(OldWorker))
 			{
-				// Worker removed
-				OnCraftWorkerRemoved.Broadcast(OldWorker.Get());
+				if(OldWorker.WillCompletedNextTick(CraftWorkerTickInterval))
+				{
+					// worker completed
+					OnCraftWorkerCompleted.Broadcast(OldWorker);
+				}else
+				{
+					// Worker removed 
+					OnCraftWorkerCanceled.Broadcast(OldWorker);	
+				}
+				
+			}else
+			{
+				// workers that not removed yet, are in progress
+				OnCraftWorkerProgress.Broadcast(OldWorker);
 			}
 		}
 	
-		PreviousCraftWorkers.Reset();
-		for (UDinoInventoryCraftWorker* Worker : CraftWorkers)
+		PreviousCraftWorkers.Clear();
+		for (const FDinoInventoryCraftWorker& Worker : CraftWorkers.Items)
 		{
-			PreviousCraftWorkers.Add(Worker);
+			PreviousCraftWorkers.AddWorker(Worker);
 		}
 	}
 	

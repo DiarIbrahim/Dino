@@ -10,7 +10,7 @@ void UDinoInventoryActiveCraftInProgressWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	if(IsValid(CraftWorker))
+	if(IsValid(OwningInventoryComponent) && WorkerData.IsValid())
 	{
 		InitCraftingWidget();
 	}
@@ -51,55 +51,64 @@ void UDinoInventoryActiveCraftInProgressWidget::NativeOnMouseCaptureLost(const F
 	
 }
 
-void UDinoInventoryActiveCraftInProgressWidget::SetCraftWorker(UDinoInventoryCraftWorker* InCraftWorker)
+void UDinoInventoryActiveCraftInProgressWidget::SetCraftWorker(UDinoInventoryComponent* InInventoryComponent,
+	FDinoInventoryCraftWorker InWorker)
 {
-	if(IsValid(InCraftWorker))
+	OwningInventoryComponent = InInventoryComponent;
+	WorkerData = InWorker;
+
+	
+	if(IsValid(OwningInventoryComponent) && WorkerData.IsValid())
 	{
-		CraftWorker = InCraftWorker;
 		InitCraftingWidget();
 	}
 }
 
+
+
 void UDinoInventoryActiveCraftInProgressWidget::InitCraftingWidget()
 {
 	
-	CraftWorker->OnProgress.AddDynamic(this, &UDinoInventoryActiveCraftInProgressWidget::OnCraftingProgress);
-	CraftWorker->OnCompleted.AddDynamic(this, &UDinoInventoryActiveCraftInProgressWidget::OnCraftingCompleted);
-	CraftWorker->OnCanceled.AddDynamic(this, &UDinoInventoryActiveCraftInProgressWidget::OnCraftingCanceled);
-
-	BP_InitCraftingWidget(CraftWorker->GetCraftingItem(), CraftWorker->GetCraftingItemQuantity());
+	OwningInventoryComponent->OnCraftWorkerProgress.AddDynamic(this, &UDinoInventoryActiveCraftInProgressWidget::OnCraftingProgress);
+	OwningInventoryComponent->OnCraftWorkerCompleted.AddDynamic(this, &UDinoInventoryActiveCraftInProgressWidget::OnCraftingCompleted);
+	OwningInventoryComponent->OnCraftWorkerCanceled.AddDynamic(this, &UDinoInventoryActiveCraftInProgressWidget::OnCraftingCanceled);
+	
+	BP_InitCraftingWidget(WorkerData);
 
 }
 
 void UDinoInventoryActiveCraftInProgressWidget::CancelCrafting()
 {
-	if(IsValid(CraftWorker))
+	
+	if(IsValid(OwningInventoryComponent))
 	{
-		UDinoInventoryComponent* InventoryComponent = CraftWorker->GetOwningComponent();
-		if(IsValid(InventoryComponent))
-		{
-			InventoryComponent->CancelCrafting(CraftWorker->GetCraftingItem());
-		}
+			OwningInventoryComponent->CancelCrafting(WorkerData.ItemToCraft);
+	}
+	
+}
+
+void UDinoInventoryActiveCraftInProgressWidget::OnCraftingProgress(const FDinoInventoryCraftWorker& Worker)
+{
+	if(Worker.ItemToCraft.MatchesTagExact(WorkerData.ItemToCraft))
+	{
+		BP_OnCraftingProgress(Worker.GetProgressPercent());
 	}
 }
 
-void UDinoInventoryActiveCraftInProgressWidget::OnCraftingProgress(float Progress)
+void UDinoInventoryActiveCraftInProgressWidget::OnCraftingCompleted(const FDinoInventoryCraftWorker& Worker)
 {
-	BP_OnCraftingProgress(Progress);
+	if(Worker.ItemToCraft.MatchesTagExact(WorkerData.ItemToCraft))
+	{
+		BP_OnCraftingCompleted();
+	}
 }
 
-void UDinoInventoryActiveCraftInProgressWidget::OnCraftingCompleted()
+void UDinoInventoryActiveCraftInProgressWidget::OnCraftingCanceled(const FDinoInventoryCraftWorker& Worker)
 {
-	BP_OnCraftingCompleted();
-	// clear reference !
-	CraftWorker = nullptr;
-}
-
-void UDinoInventoryActiveCraftInProgressWidget::OnCraftingCanceled()
-{
-	BP_OnCraftingCanceled();
-	// clear reference !
-	CraftWorker = nullptr;
+	if(Worker.ItemToCraft.MatchesTagExact(WorkerData.ItemToCraft))
+	{
+		BP_OnCraftingCanceled();
+	}
 }
 
 void UDinoInventoryActiveCraftInProgressWidget::ShowCancelButton()

@@ -50,7 +50,8 @@ void UDinoInventoryCraftWidget::RegisterWithDinoInventoryComponent(UDinoInventor
 	OwningInventoryComponent->OnItemAdded.AddDynamic(this, &UDinoInventoryCraftWidget::OnInvenntoryItemAdded);
 	OwningInventoryComponent->OnItemRemoved.AddDynamic(this, &UDinoInventoryCraftWidget::OnInvenntoryItemRemoved);
 	OwningInventoryComponent->OnCraftWorkerAdded.AddDynamic(this, &UDinoInventoryCraftWidget::CraftWorkerChanged);
-	OwningInventoryComponent->OnCraftWorkerRemoved.AddDynamic(this, &UDinoInventoryCraftWidget::CraftWorkerChanged);
+	OwningInventoryComponent->OnCraftWorkerCanceled.AddDynamic(this, &UDinoInventoryCraftWidget::CraftWorkerChanged);
+	OwningInventoryComponent->OnCraftWorkerCompleted.AddDynamic(this, &UDinoInventoryCraftWidget::CraftWorkerChanged);
 	
 	TArray<FDinoInventoryItemData> CraftableItems = UDinoInventoryFunctionLibrary::GetCraftableItems();
 	
@@ -77,7 +78,7 @@ void UDinoInventoryCraftWidget::OnInvenntoryItemRemoved(const FDinoInventorySlot
 
 }
 
-void UDinoInventoryCraftWidget::CraftWorkerChanged(UDinoInventoryCraftWorker* Worker)
+void UDinoInventoryCraftWidget::CraftWorkerChanged(const FDinoInventoryCraftWorker& Worker)
 {
 	// Update dependency statistics for selected Craftable to be made
 	RefreshDependency();

@@ -41,7 +41,8 @@ public class Dino : ModuleRules
 				"GameplayTags",
                 "DeveloperSettings",
 				"UMG",
-                "InputCore"
+                "InputCore",
+                "NetCore"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

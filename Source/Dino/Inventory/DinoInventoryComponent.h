@@ -15,8 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInventoryItemAddedDelegate, co
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInventoryItemRemovedDelegate, const FDinoInventorySlotContainer&, Slots, const FGameplayTag&, RemovedItemTag, bool, bAllStacksRemoved);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventorySlotCountUpdatedDelegate, int32, NewInventorySlotCount);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryCraftWorkerDelegate, UDinoInventoryCraftWorker*, Worker);
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryCraftWorkerDelegate, const FDinoInventoryCraftWorker&, Worker);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class DINO_API UDinoInventoryComponent : public UActorComponent
@@ -32,6 +31,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Dino Inventory")
 	int32 DefaultSlotItemCapacity = 10;
 
+	// How often we update craft workers ? 10 HZ
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Dino Inventory|Craft")
+	float CraftWorkerTickInterval = 1.f/10.f;
+
 
 	// a new item added to the inventory (or an existing item's quantity added)
 	UPROPERTY(BlueprintAssignable)
@@ -44,12 +47,16 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnInventoryCraftWorkerDelegate OnCraftWorkerAdded;
 	UPROPERTY(BlueprintAssignable)
-	FOnInventoryCraftWorkerDelegate OnCraftWorkerRemoved;
+	FOnInventoryCraftWorkerDelegate OnCraftWorkerProgress;
+	UPROPERTY(BlueprintAssignable)
+	FOnInventoryCraftWorkerDelegate OnCraftWorkerCanceled;
+	UPROPERTY(BlueprintAssignable)
+	FOnInventoryCraftWorkerDelegate OnCraftWorkerCompleted;
 	
 protected:
 	
 	UPROPERTY(ReplicatedUsing=OnRep_CraftedWorkers)
-	TArray<UDinoInventoryCraftWorker*> CraftWorkers;
+	FDinoInventoryCraftWorkerContainer CraftWorkers;
 
 	UPROPERTY(ReplicatedUsing=OnRep_Inventory)
 	FDinoInventorySlotContainer InventorySlotContainer;
@@ -62,7 +69,9 @@ private:
 
 	// Previous snapshot for diffing
 	FDinoInventorySlotContainer PreviousInventoryItems;
-	TArray<TWeakObjectPtr<UDinoInventoryCraftWorker>> PreviousCraftWorkers;
+	FDinoInventoryCraftWorkerContainer PreviousCraftWorkers;
+
+	float CraftWorkerTickTimeCounter = 0.0f;
 
 
 public:
@@ -71,6 +80,7 @@ public:
 	// Sets default values for this component's properties
 	UDinoInventoryComponent();
 	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	void Initialize();
 
 	//// ---- Add Item
@@ -127,11 +137,16 @@ public:
 	
 	// releases the dependency to the component when crafting fails or canceled (Only Called on Authority)
 	UFUNCTION(BlueprintCallable, Category = "Dino Inventory")
-	bool ReleaseCraftingDependencyForItem(UDinoInventoryCraftWorker* CraftWorker, const FGameplayTag& ItemTag, int32 Quantity = 1);
+	bool ReleaseCraftingDependencyForItem(const FGameplayTag& ItemTag, int32 Quantity = 1);
 	
 	UFUNCTION(BlueprintCallable, Category = "Dino Inventory")
 	bool IsItemCraftingInProgress(const FGameplayTag& ItemTag);
 
+	UFUNCTION(BlueprintCallable, Category = "Dino Inventory")
+	float GetCraftProgressForItem(const FGameplayTag& ItemTag);
+
+	UFUNCTION(BlueprintCallable, Category = "Dino Inventory")
+	FDinoInventoryCraftWorker GetActiveCraftWorkerData(const FGameplayTag& ItemTag);
 	// cancels and existing crafting process for an item and terminates the craft worker
 	UFUNCTION(BlueprintCallable, Category = "Dino Inventory")
 	void CancelCrafting(FGameplayTag ItemTag);
@@ -143,13 +158,13 @@ public:
 	// returns true when canceling succeeded
 	bool CancelCrafting_Internal(const FGameplayTag& ItemTag);
 
+	void CraftWorkerTick(float DeltaTime);
+
 	
-	UFUNCTION()
-	void OnCraftWorkerDestroyed(UDinoInventoryCraftWorker* Worker);
-
-
 	//// ----- Craft Item END
 
+	UFUNCTION(BlueprintPure)
+	bool IsLocallyControlled() const;
 
 	
 	// returns inventory  slots

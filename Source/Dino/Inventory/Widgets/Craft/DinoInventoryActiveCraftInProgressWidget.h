@@ -5,9 +5,11 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "Blueprint/UserWidget.h"
+#include "Dino/Inventory/Craft/DinoInventoryCraftWorker.h"
 #include "DinoInventoryActiveCraftInProgressWidget.generated.h"
 
 
+class UDinoInventoryComponent;
 class UDinoInventoryCraftWorker;
 
 UCLASS()
@@ -18,9 +20,12 @@ class DINO_API UDinoInventoryActiveCraftInProgressWidget : public UUserWidget
 
 
 protected:
-	
+
 	UPROPERTY(BlueprintReadOnly, meta=(ExposeOnSpawn))
-	UDinoInventoryCraftWorker* CraftWorker;
+	UDinoInventoryComponent* OwningInventoryComponent;
+	UPROPERTY(BlueprintReadOnly, meta=(ExposeOnSpawn))
+	FDinoInventoryCraftWorker WorkerData;
+	
 
 	UPROPERTY(EditAnywhere, Category="Dino Inventory|Crafting")
 	bool bAllowCanceling = true;
@@ -36,7 +41,7 @@ public:
 	virtual void NativeOnMouseCaptureLost(const FCaptureLostEvent& CaptureLostEvent) override;
 
 	UFUNCTION(BlueprintCallable)
-	void SetCraftWorker(UDinoInventoryCraftWorker* InCraftWorker);
+	void SetCraftWorker(UDinoInventoryComponent* InInventoryComponent, FDinoInventoryCraftWorker InWorker);
 	
 	void InitCraftingWidget();
 
@@ -44,20 +49,20 @@ public:
 	void CancelCrafting();
 	
 	UFUNCTION(BlueprintImplementableEvent, DisplayName="Init Crafting Widget")
-	void BP_InitCraftingWidget(const FGameplayTag& ItemTag, int32 Quantity);
+	void BP_InitCraftingWidget(const FDinoInventoryCraftWorker& Worker);
 	
 	UFUNCTION()
-	void OnCraftingProgress(float Progress);
+	void OnCraftingProgress(const FDinoInventoryCraftWorker& Worker);
 	UFUNCTION(BlueprintImplementableEvent,  DisplayName="On Crafting On Progress")
 	void BP_OnCraftingProgress(float Progress);
 
 	UFUNCTION()
-	void OnCraftingCompleted();
+	void OnCraftingCompleted(const FDinoInventoryCraftWorker& Worker);
 	UFUNCTION(BlueprintImplementableEvent,  DisplayName="Crafting Completed")
 	void BP_OnCraftingCompleted();
 
 	UFUNCTION()
-	void OnCraftingCanceled();
+	void OnCraftingCanceled(const FDinoInventoryCraftWorker& Worker);
 	UFUNCTION(BlueprintImplementableEvent, DisplayName="Crafting Canceled")
 	void BP_OnCraftingCanceled();
 

@@ -3,8 +3,11 @@
 
 #include "DinoInventorySlotWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Components/MenuAnchor.h"
+#include "Dino/Inventory/Helpers/DinoInventoryFunctionLibrary.h"
 #include "DragDrop/DinoInventoryDragDropOperation.h"
 #include "DragDrop/DinoInventoryDragVisual.h"
+#include "ItemAction/DinoInventoryItemActionMenuWidget.h"
 
 
 UDinoInventorySlotWidget::UDinoInventorySlotWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {
@@ -99,6 +102,76 @@ void UDinoInventorySlotWidget::NativeOnDragLeave(const FDragDropEvent& InDragDro
 		
 	
 }
+
+void UDinoInventorySlotWidget::NativePreConstruct()
+{
+	Super::NativePreConstruct();
+
+}
+
+void UDinoInventorySlotWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	
+	if(IsValid(ActionMenuAnchor))
+	{
+		ActionMenuAnchor->OnGetUserMenuContentEvent.BindDynamic(this, &UDinoInventorySlotWidget::ConstructItemActionMenu);
+	}
+
+}
+
+void UDinoInventorySlotWidget::SetOwningInventory(UDinoInventoryWidget* InventoryWidget)
+{
+	OwningInventoryWidget = InventoryWidget;
+}
+
+void UDinoInventorySlotWidget::ShowActionMenu()
+{
+
+	if(IsValid(ActionMenuAnchor) == false) return;
+
+	if(ActionMenuAnchor->IsOpen()) return;
+	
+	// if this itm has any action or allows action
+
+	FDinoInventoryItemData OutItemData;
+	UDinoInventoryFunctionLibrary::GetDinoInventoryItemData(SlotData.ItemTag, OutItemData);
+
+	// we have no action
+	if(OutItemData.ItemActionData.bHasActions == false || OutItemData.ItemActionData.Actions.IsEmpty()) return;
+	
+	ActionMenuAnchor->Open(false);
+	
+	
+}
+
+void UDinoInventorySlotWidget::HideActionMenu()
+{
+	if(IsValid(ActionMenuAnchor) == false) return;
+
+	if(ActionMenuAnchor->IsOpen() == false) return;
+	
+	ActionMenuAnchor->Close();
+	
+}
+
+UUserWidget* UDinoInventorySlotWidget::ConstructItemActionMenu()
+{
+	if(IsValid(ItemActionMenuWidgetClass) == false) return nullptr;
+
+	FDinoInventoryItemData OutItemData;
+	UDinoInventoryFunctionLibrary::GetDinoInventoryItemData(SlotData.ItemTag, OutItemData);
+
+	// we have no action
+	if(OutItemData.ItemActionData.bHasActions == false || OutItemData.ItemActionData.Actions.IsEmpty()) return nullptr;
+	
+	UDinoInventoryItemActionMenuWidget* Menu = CreateWidget<UDinoInventoryItemActionMenuWidget>(GetWorld(), ItemActionMenuWidgetClass);
+	Menu->SetItemData(OutItemData);
+
+	return Menu;
+}
+
+
 
 bool UDinoInventorySlotWidget::IsDragAllowed_Implementation()
 {

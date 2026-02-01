@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "gameplayTags.h"
 #include "Engine/DataTable.h"
+#include "Net/Serialization/FastArraySerializer.h"
 #include "DinoInventoryTypes.generated.h"
 
 class UDinoInventoryComponent;
@@ -62,14 +63,40 @@ struct FDinoInventoryItemCraftingData{
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ForceUnits = "s", EditCondition = "CraftingPolicy == EDinoInventoryItemCraftingPolicy::Craftable", EditConditionHides))
 	float CraftingDuration = 2.0f;
 
-	/*
-	 *  how often we tick when calculating the crafting duration (how many steps to complete the duration)
-	 *  i think of this as a way to optimize the crafting workers so they do not run on tick for calculating the duration and we still have a progress for the crafting,
-	 *  e.g. 10 steps means each the duration will be completed in 10 actions each action will take CraftingDuration / CraftingDurationSteps
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition = "CraftingPolicy == EDinoInventoryItemCraftingPolicy::Craftable", EditConditionHides))
-	int32 CraftingDurationSteps = 10;
+
+};
+
+
+USTRUCT(BlueprintType)
+struct FDinoInventoryItemActionData
+{
+	GENERATED_BODY()
+
+	// a tag that represents an action of an item
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FGameplayTag ItemActionTag;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText ItemActionDisplayName  = {};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName="Action Icon")
+	TSoftObjectPtr<UTexture2D> SoftActionIcon;
 	
+};
+
+
+USTRUCT(BlueprintType)
+struct FDinoInventoryItemActionContainer
+{
+	GENERATED_BODY()
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bHasActions = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition=bHasActions))
+	TArray<FDinoInventoryItemActionData> Actions;
+
 };
 
 
@@ -105,11 +132,9 @@ struct FDinoInventoryItemData : public FTableRowBase {
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FDinoInventoryItemCraftingData CraftingData;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FDinoInventoryItemActionContainer ItemActionData;
 	
-	// TODO Implement this
-	// Checks the dependencies of this item and returns true if we have all needed resources for this item to be crafted
-	bool ValidateCrafting(UDinoInventoryComponent* InventoryComponent){return true;}
-
 };
 
 
@@ -121,7 +146,7 @@ struct FDinoInventoryItemData : public FTableRowBase {
 
 // a slot represents an item that can be added to the inventory system
 USTRUCT(BlueprintType)
-struct FDinoInventorySlot
+struct FDinoInventorySlot : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
@@ -151,7 +176,7 @@ public:
 
 // list of slots that are available in the inventory
 USTRUCT(BlueprintType)
-struct FDinoInventorySlotContainer
+struct FDinoInventorySlotContainer : public FFastArraySerializer
 {
 	GENERATED_BODY()
 

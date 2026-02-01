@@ -35,7 +35,10 @@ void UDinoInventoryCraftWidget::NativePreConstruct()
 	Super::NativePreConstruct();
 
 	// for in editor testing only !
-	GenerateItemsForEditor();
+	if(IsDesignTime())
+	{
+		GenerateItemsForEditor();
+	}
 	
 }
 

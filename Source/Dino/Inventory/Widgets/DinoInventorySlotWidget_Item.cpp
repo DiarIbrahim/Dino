@@ -5,11 +5,6 @@
 #include "DinoInventoryWidget.h"
 #include "DragDrop/DinoInventoryDragDropOperation.h"
 
-void UDinoInventorySlotWidget_Item::SetOwningInventory(UDinoInventoryWidget* InventoryWidget)
-{
-	OwningInventoryWidget = InventoryWidget;
-}
-
 bool UDinoInventorySlotWidget_Item::CanReceiveDrop_Implementation(UDinoInventoryDragDropOperation* Operation)
 {
 	if (IsValid(Operation) == false) return false;

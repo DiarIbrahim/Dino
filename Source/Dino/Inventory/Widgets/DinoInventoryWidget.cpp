@@ -25,20 +25,23 @@ void UDinoInventoryWidget::NativePreConstruct()
 {
 	Super::NativePreConstruct();
 
-#if WITH_EDITOR
-	if (IsValid(InventorySlotClass) == false)
+	if (IsDesignTime())
 	{
-		FMessageLog("Blueprint").Warning()
-			->AddToken(FTextToken::Create(FText::FromString("Please provide a valid class for InventorySlotClass.")))
-			->AddToken(FUObjectToken::Create(this));
-	}
+#if WITH_EDITOR
+		if (IsValid(InventorySlotClass) == false)
+		{
+			FMessageLog("Blueprint").Warning()
+			                        ->AddToken(FTextToken::Create(
+				                        FText::FromString("Please provide a valid class for InventorySlotClass.")))
+			                        ->AddToken(FUObjectToken::Create(this));
+		}
 #endif
 
 
-	// generate the grid for editor
+		// generate the grid for editor
 
-	InitializeSlots(FDinoInventorySlotContainer(InventoryColumns * TestInventoryRow, 0));
-
+		InitializeSlots(FDinoInventorySlotContainer(InventoryColumns * TestInventoryRow, 0));
+	}
 }
 
 void UDinoInventoryWidget::RegisterWithInventoryComponent(UDinoInventoryComponent* InOwningInventory)

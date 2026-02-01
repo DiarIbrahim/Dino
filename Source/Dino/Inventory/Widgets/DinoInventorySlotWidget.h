@@ -9,6 +9,9 @@
 #include "Dino/Inventory/DinoInventoryTypes.h"
 #include "DinoInventorySlotWidget.generated.h"
 
+class UDinoInventoryItemActionMenuWidget;
+class UMenuAnchor;
+class UDinoInventoryWidget;
 class UDinoInventorySlotWidget;
 class UDinoInventoryDragVisual;
 class UDinoInventoryComponent;
@@ -29,11 +32,22 @@ public:
 
 	UDinoInventorySlotWidget(const FObjectInitializer& ObjectInitializer);
 
-	UPROPERTY(EditAnywhere, Category = "Dino Inventory Slot")
+	UPROPERTY(EditAnywhere, Category = "Dino Inventory")
 	TSubclassOf<UDinoInventoryDragVisual> DragVisualClass;
+
+	UPROPERTY(EditAnywhere, Category = "Dino Inventory")
+	TSubclassOf<UDinoInventoryItemActionMenuWidget> ItemActionMenuWidgetClass;
+	
 
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	UImage* Item_Image;
+
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	UMenuAnchor* ActionMenuAnchor;
+	
+	UPROPERTY(BlueprintReadOnly)
+	UDinoInventoryWidget* OwningInventoryWidget;
+	
 
 
 	// --- Drag and Drop
@@ -45,7 +59,22 @@ public:
 	virtual void NativeOnDragEnter(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation);
 	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation);
 
+	virtual void NativePreConstruct() override;
+	virtual void NativeConstruct() override;
 
+	void SetOwningInventory(UDinoInventoryWidget* InventoryWidget);
+
+
+	
+	UFUNCTION(BlueprintCallable, Category = "Dino Inventory Slot")
+	void ShowActionMenu();
+
+	UFUNCTION(BlueprintCallable, Category = "Dino Inventory Slot")
+	void HideActionMenu();
+
+	UFUNCTION()
+	UUserWidget* ConstructItemActionMenu();
+	
 	// are we allowing to drag this slot ?
 	UFUNCTION(BlueprintNativeEvent, Category = "Dino Inventory Slot")
 	bool IsDragAllowed();
@@ -94,6 +123,7 @@ public:
 	virtual void EmptySlotData_Implementation();
 
 
+	
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "On Drag Hover Enter"))
 	void BP_OnDragHover_Enter(bool bCanBeDropped);

@@ -2,6 +2,8 @@
 
 
 #include "DinoInventorySlotWidget.h"
+
+#include "DinoInventoryWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/MenuAnchor.h"
 #include "Dino/Inventory/Helpers/DinoInventoryFunctionLibrary.h"
@@ -166,7 +168,7 @@ UUserWidget* UDinoInventorySlotWidget::ConstructItemActionMenu()
 	if(OutItemData.ItemActionData.bHasActions == false || OutItemData.ItemActionData.Actions.IsEmpty()) return nullptr;
 	
 	UDinoInventoryItemActionMenuWidget* Menu = CreateWidget<UDinoInventoryItemActionMenuWidget>(GetWorld(), ItemActionMenuWidgetClass);
-	Menu->SetItemData(OutItemData);
+	Menu->Init(OwningInventoryWidget->OwningInventoryComponent, ActionMenuAnchor,OutItemData);
 
 	return Menu;
 }

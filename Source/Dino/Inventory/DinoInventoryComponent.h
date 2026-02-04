@@ -10,10 +10,13 @@
 #include "DinoInventoryComponent.generated.h"
 
 
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInventoryItemAddedDelegate, const FDinoInventorySlotContainer&, Slots, const FGameplayTag&, NewItemTag, bool, bIsFirstAddition);
+class UDinoInventoryItemActionScript;
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInventoryItemAddedDelegate, const FDinoInventorySlotContainer&, Slots,
+                                               const FGameplayTag&, NewItemTag, bool, bIsFirstAddition);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInventoryItemRemovedDelegate, const FDinoInventorySlotContainer&, Slots, const FGameplayTag&, RemovedItemTag, bool, bAllStacksRemoved);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventorySlotCountUpdatedDelegate, int32, NewInventorySlotCount);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventoryItemActionDelegate,const FGameplayTag&, ItemTag, const FGameplayTag& ,ActionTag);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryCraftWorkerDelegate, const FDinoInventoryCraftWorker&, Worker);
 
@@ -52,7 +55,7 @@ public:
 	FOnInventoryCraftWorkerDelegate OnCraftWorkerCanceled;
 	UPROPERTY(BlueprintAssignable)
 	FOnInventoryCraftWorkerDelegate OnCraftWorkerCompleted;
-	
+
 protected:
 	
 	UPROPERTY(ReplicatedUsing=OnRep_CraftedWorkers)
@@ -60,6 +63,9 @@ protected:
 
 	UPROPERTY(ReplicatedUsing=OnRep_Inventory)
 	FDinoInventorySlotContainer InventorySlotContainer;
+
+	UPROPERTY()
+	TArray<UDinoInventoryItemActionScript*> ItemActionScripts;
 	
 	UPROPERTY()
 	APawn* OwningPawn;
@@ -162,6 +168,24 @@ public:
 
 	
 	//// ----- Craft Item END
+	
+
+
+	//// ----- Inventory Item Actions
+
+	UFUNCTION(BlueprintCallable, Category = "Dino Inventory")
+	void HandleInventoryItemAction(const FGameplayTag& ItemTag, const FGameplayTag& ActionTag);
+
+	UFUNCTION(Server, Reliable)
+	void Server_HandleInventoryItemAction(const FGameplayTag& ItemTag, const FGameplayTag& ActionTag);
+	void Server_HandleInventoryItemAction_Implementation(const FGameplayTag& ItemTag, const FGameplayTag& ActionTag);
+
+	void HandleInventoryItemAction_Internal(const FGameplayTag& ItemTag, const FGameplayTag& ActionTag);
+
+	void HandleInventoryItemActionScriptEnded(UDinoInventoryItemActionScript* ActionScript);
+	
+	//// ----- Inventory Item Actions END
+
 
 	UFUNCTION(BlueprintPure)
 	bool IsLocallyControlled() const;

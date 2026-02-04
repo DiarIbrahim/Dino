@@ -4,10 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "gameplayTags.h"
+#include "Dino/Tags/DinoTags.h"
 #include "Engine/DataTable.h"
 #include "Net/Serialization/FastArraySerializer.h"
+#include "Scripts/DinoInventoryItemActionScript.h"
 #include "DinoInventoryTypes.generated.h"
 
+class UDinoInventoryItemActionScript_Drop;
+class UDinoInventoryItemActionScript;
 class UDinoInventoryComponent;
 
 UENUM(BlueprintType)
@@ -72,13 +76,17 @@ struct FDinoInventoryItemActionData
 {
 	GENERATED_BODY()
 
-	// a tag that represents an action of an item
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FGameplayTag ItemActionTag;
+	FDinoInventoryItemActionData(){}
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftClassPtr<UDinoInventoryItemActionScript> ActionScript;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText ItemActionDisplayName  = {};
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText  ItemActionDescription  = {};
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName="Action Icon")
 	TSoftObjectPtr<UTexture2D> SoftActionIcon;
 	
@@ -95,13 +103,13 @@ struct FDinoInventoryItemActionContainer
 	bool bHasActions = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition=bHasActions))
-	TArray<FDinoInventoryItemActionData> Actions;
+	TMap<FGameplayTag, FDinoInventoryItemActionData> Actions = {};
 
 };
 
 
 
-// Dino Inventtory Item Structure
+// Dino Inventory Item Structure
 USTRUCT(BlueprintType)
 struct FDinoInventoryItemData : public FTableRowBase {
 	GENERATED_BODY();

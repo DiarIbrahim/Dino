@@ -4,6 +4,7 @@
 #include "DinoInventoryComponent.h"
 
 #include "IDetailTreeNode.h"
+#include "Dino/Tags/DinoTags.h"
 #include "Helpers/DinoInventoryFunctionLibrary.h"
 #include "Net/UnrealNetwork.h"
 
@@ -246,7 +247,7 @@ void UDinoInventoryComponent::CancelCrafting(FGameplayTag ItemTag)
 	if(GetOwner()->HasAuthority())
 	{
 		CancelCrafting_Internal(ItemTag);
-	}else if (GetOwnerRole() == ROLE_AutonomousProxy)
+	}else if (IsLocallyControlled())
 	{
 		Server_CancelCrafting(ItemTag);
 	}
@@ -310,6 +311,58 @@ void UDinoInventoryComponent::CraftWorkerTick(float DeltaTime)
 		CraftWorkers.RemoveWorker(Worker);
 	}
 }
+
+void UDinoInventoryComponent::HandleInventoryItemAction(const FGameplayTag& ItemTag, const FGameplayTag& ActionTag)
+{
+	if(GetOwner()->HasAuthority())
+	{
+		HandleInventoryItemAction_Internal(ItemTag, ActionTag);
+	}else if (IsLocallyControlled()){
+		Server_HandleInventoryItemAction(ItemTag, ActionTag);
+	}
+}
+
+void UDinoInventoryComponent::Server_HandleInventoryItemAction_Implementation(const FGameplayTag& ItemTag, const FGameplayTag& ActionTag)
+{
+	HandleInventoryItemAction_Internal(ItemTag, ActionTag);
+}
+
+void UDinoInventoryComponent::HandleInventoryItemAction_Internal(const FGameplayTag& ItemTag, const FGameplayTag& ActionTag)
+{
+
+	FDinoInventoryItemData OutItemData;
+	if(UDinoInventoryFunctionLibrary::GetDinoInventoryItemData(ItemTag, OutItemData) == false) return;
+
+	if( OutItemData.ItemActionData.Actions.Contains(ActionTag) == false) return;
+	
+	FDinoInventoryItemActionData ItemData =  *OutItemData.ItemActionData.Actions.Find(ActionTag);
+
+	if(ItemData.ActionScript.IsNull()) return;
+	
+
+	UDinoInventoryItemActionScript* NewActionScript = NewObject<UDinoInventoryItemActionScript>(this, ItemData.ActionScript.LoadSynchronous(), FName("DinoInventoryItemAction"));
+	
+	NewActionScript->InitAction(this, ItemTag);
+
+	ItemActionScripts.Add(NewActionScript);
+
+	// TODO broadcast delegate if needed
+	
+}
+
+void UDinoInventoryComponent::HandleInventoryItemActionScriptEnded(UDinoInventoryItemActionScript* ActionScript)
+{
+
+	if(GetOwner()->HasAuthority() == false) return;
+	
+	if(ItemActionScripts.Contains(ActionScript))
+	{
+		ItemActionScripts.Remove(ActionScript);
+	}
+
+	// TODO broadcast delegate if needed
+}
+
 
 bool UDinoInventoryComponent::IsLocallyControlled() const
 {
